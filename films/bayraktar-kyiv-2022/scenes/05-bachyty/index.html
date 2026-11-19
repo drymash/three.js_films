@@ -206,7 +206,7 @@ function holoMat(base) {
       void main(){ float rim = pow(1.0 - clamp(abs(dot(normalize(vN), normalize(vV))), 0.0, 1.0), 2.0);
         float scan = 0.5 + 0.5 * sin(vW.y * 60.0 - uTime * 3.0);
         vec3 org = vec3(1.0, 0.42, 0.16);
-        vec3 c = mix(uBase * (0.10 + 0.75 * rim + 0.05 * scan), org * (0.55 + 0.6 * rim), uHi);
+        vec3 c = mix(uBase * (0.06 + 0.55 * rim + 0.04 * scan), org * (0.22 + 0.42 * rim), uHi);
         gl_FragColor = vec4(c * uFade, 1.0); }`
   });
   holoMats.push(m); return m;
@@ -286,7 +286,7 @@ sight.frustumCulled = false; studio.add(sight);
 
 /* the balance: ball on one pan, a person on the other */
 const BAL = V(4.1, FLOOR_Y, 3.6);
-const WHITE = new THREE.Color(0.75, 0.82, 0.92);
+const WHITE = new THREE.Color(0.42, 0.47, 0.56);
 const balance = new THREE.Group(); balance.position.copy(BAL); studio.add(balance);
 add('scale', cyl(0.05, 0.08, 1.15, 10), 0, 0.575, 0, balance, 0, WHITE);
 add('scale', cyl(0.35, 0.4, 0.06, 24), 0, 0.03, 0, balance, 0, WHITE);
@@ -399,7 +399,7 @@ const studioRT = renderer.capabilities.isWebGL2 && THREE.WebGLMultisampleRenderT
 const composer = new THREE.EffectComposer(renderer, studioRT);
 composer.setPixelRatio(renderer.getPixelRatio()); composer.setSize(innerWidth, innerHeight);
 composer.addPass(new THREE.RenderPass(studio, cam));
-const bloom = new THREE.UnrealBloomPass(new THREE.Vector2(innerWidth, innerHeight), 0.55, 0.5, 0.22); composer.addPass(bloom);
+const bloom = new THREE.UnrealBloomPass(new THREE.Vector2(innerWidth, innerHeight), 0.32, 0.45, 0.35); composer.addPass(bloom);
 composer.renderToScreen = false;
 const quad = new THREE.Mesh(new THREE.PlaneGeometry(2, 2), new THREE.ShaderMaterial({
   uniforms: {
