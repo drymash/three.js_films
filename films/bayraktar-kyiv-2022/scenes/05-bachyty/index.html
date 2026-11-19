@@ -146,6 +146,11 @@ html,body{height:100%;margin:0;background:var(--bg);color:var(--fg);overflow:hid
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/RenderPass.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/ShaderPass.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/UnrealBloomPass.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/libs/fflate.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/FBXLoader.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/utils/SkeletonUtils.js"></script>
+<!-- "Animated Human" by Quaternius, CC0 1.0 (assets/HUMAN-LICENSE.txt), embedded as base64 so the page also works from file:// -->
+<script src="human-fbx.js"></script>
 <script>
 (() => {
 const DUR = 23;
@@ -197,13 +202,22 @@ const FLOOR_Y = -1.16;
   floor.rotation.x = -Math.PI / 2; floor.position.y = FLOOR_Y; studio.add(floor);
 }
 const holoMats = [];
-function holoMat(base) {
+function holoMat(base, skinned) {
   const m = new THREE.ShaderMaterial({
+    skinning: !!skinned,
     transparent: true, depthWrite: false, side: THREE.DoubleSide, blending: THREE.AdditiveBlending,
     uniforms: { uHi: { value: 0 }, uTime: { value: 0 }, uFade: { value: 1 }, uBase: { value: base || new THREE.Color(0.22, 0.50, 1.0) } },
-    vertexShader: `varying vec3 vN; varying vec3 vV; varying vec3 vW;
-      void main(){ vec4 mv = modelViewMatrix * vec4(position,1.0); vN = normalize(normalMatrix * normal); vV = normalize(-mv.xyz);
-        vW = (modelMatrix * vec4(position,1.0)).xyz; gl_Position = projectionMatrix * mv; }`,
+    vertexShader: `#include <common>
+      #include <skinning_pars_vertex>
+      varying vec3 vN; varying vec3 vV; varying vec3 vW;
+      void main(){
+        #include <beginnormal_vertex>
+        #include <skinbase_vertex>
+        #include <skinnormal_vertex>
+        #include <begin_vertex>
+        #include <skinning_vertex>
+        vec4 mv = modelViewMatrix * vec4(transformed,1.0); vN = normalize(normalMatrix * objectNormal); vV = normalize(-mv.xyz);
+        vW = (modelMatrix * vec4(transformed,1.0)).xyz; gl_Position = projectionMatrix * mv; }`,
     fragmentShader: `uniform float uHi, uTime, uFade; uniform vec3 uBase; varying vec3 vN; varying vec3 vV; varying vec3 vW;
       void main(){ float rim = pow(1.0 - clamp(abs(dot(normalize(vN), normalize(vV))), 0.0, 1.0), 2.0);
         float scan = 0.5 + 0.5 * sin(vW.y * 60.0 - uTime * 3.0);
@@ -296,14 +310,24 @@ const beam = new THREE.Group(); beam.position.set(0, 1.18, 0); balance.add(beam)
 add('scale', new THREE.BoxGeometry(2.8, 0.05, 0.08), 0, 0, 0, beam, 0, WHITE);
 const panL = new THREE.Group(), panR = new THREE.Group(); balance.add(panL, panR);
 [panL, panR].forEach(p => { add('scale', cyl(0.42, 0.36, 0.05, 28), 0, 0, 0, p, 0, WHITE); add('scale', cyl(0.008, 0.008, 0.5, 4), 0, 0.27, 0, p, 0, WHITE); });
-const person = new THREE.Group(); panR.add(person); person.position.y = 0.03;
-{ // a plain mannequin, 1.75 m
-  const pm = (g, x, y, z) => add('person', g, x, y, z, person, 0, WHITE);
-  pm(cyl(0.1, 0.12, 0.8, 12), 0.08, 0.42, 0); pm(cyl(0.1, 0.12, 0.8, 12), -0.08, 0.42, 0);
-  pm(cyl(0.2, 0.16, 0.62, 14), 0, 1.13, 0);
-  pm(cyl(0.055, 0.06, 0.62, 10), 0.26, 1.12, 0); pm(cyl(0.055, 0.06, 0.62, 10), -0.26, 1.12, 0);
-  pm(new THREE.SphereGeometry(0.12, 16, 12), 0, 1.62, 0);
+/* the person: CC0 low-poly human, idle pose, as a pale hologram */
+const HUMAN_SRC = new THREE.FBXLoader().parse(Uint8Array.from(atob(window.HUMAN_FBX_B64), c => c.charCodeAt(0)).buffer, '');
+const IDLE = HUMAN_SRC.animations.find(a => a.name.endsWith('Idle'));
+function makeHuman(height, pose, materialFor) {
+  const o = THREE.SkeletonUtils.clone(HUMAN_SRC);
+  const mixer = new THREE.AnimationMixer(o); mixer.clipAction(IDLE).play(); mixer.setTime(2.0);
+  const B = {}; o.traverse(c => { if (c.isBone) B[c.name] = c; if (c.isMesh) { c.material = materialFor(c); c.frustumCulled = false; } });
+  if (pose) pose(B);
+  o.scale.setScalar(1); o.updateMatrixWorld(true);
+  const top = B.HeadTop_End.getWorldPosition(V(0, 0, 0)).y - o.getWorldPosition(V(0, 0, 0)).y;
+  o.scale.setScalar(height / (top * 1.04));
+  o.userData = { mixer, B, pose }; return o;
 }
+const personMat = holoMat(WHITE, true);
+(parts.person = parts.person || []).push({ mat: personMat, em: new THREE.LineBasicMaterial(), base: true });
+const person = makeHuman(1.75, null, () => personMat);
+person.position.y = 0.03; person.rotation.y = -0.5; panR.add(person);
+
 const ghost = new THREE.Group(); studio.add(ghost);
 add('ghost', new THREE.SphereGeometry(0.24, 28, 18), 0, 0, 0, ghost);
 add('ghost', alongX(cyl(0.064, 0.064, 0.006, 24)), 0.24, 0.05, 0, ghost);
@@ -501,9 +525,22 @@ function truck(x) {
 }
 const COLUMN = [bmp(54), truck(36), bmp(18), tank(0), truck(-18), bmp(-36), truck(-54)];
 const HERO = COLUMN[2];
-{ // the soldier on the armour of the hero vehicle
-  fmesh(new THREE.BoxGeometry(0.45, 0.7, 0.4), 0x55573a, 0.86, -0.8, 2.15, 0.6, HERO);
-  fmesh(new THREE.SphereGeometry(0.15, 10, 8), 0x6a5a4a, 0.92, -0.8, 2.62, 0.6, HERO);
+{ // the soldier on the armour of the hero vehicle: seated, hands together in front, looking up at the sky
+  const deg = Math.PI / 180;
+  const seat = Bn => {
+    Bn.LeftUpLeg.rotation.x += -85 * deg; Bn.RightUpLeg.rotation.x += -85 * deg;
+    Bn.LeftLeg.rotation.x -= 85 * deg; Bn.RightLeg.rotation.x -= 85 * deg;
+    Bn.LeftArm.rotation.x += 60 * deg; Bn.LeftForeArm.rotation.x += 80 * deg;
+    Bn.RightArm.rotation.x += 60 * deg; Bn.RightForeArm.rotation.x += 80 * deg;
+    Bn.Neck.rotation.x += -30 * deg; Bn.Head.rotation.x += -30 * deg;
+  };
+  const day = new THREE.MeshLambertMaterial({ color: 0x5a5c3c, skinning: true });
+  const ir = new THREE.MeshBasicMaterial({ color: new THREE.Color(0.88, 0.88, 0.88), skinning: true });
+  const soldier = makeHuman(1.78, seat, () => day);
+  soldier.traverse(c => { if (c.isMesh) { c.userData.day = day; c.userData.ir = ir; swaps.push(c); } });
+  soldier.updateMatrixWorld(true);
+  const hips = soldier.userData.B.Hips.getWorldPosition(V(0, 0, 0)).y - soldier.getWorldPosition(V(0, 0, 0)).y;
+  soldier.position.set(-0.9, 1.9 + 0.08 - hips, 0.75); soldier.rotation.y = Math.PI / 2 + 0.3; HERO.add(soldier);
 }
 function setMode(ir) {
   swaps.forEach(m => { m.material = ir ? m.userData.ir : m.userData.day; });
@@ -692,6 +729,7 @@ function render(t) {
   ghost.position.copy(arc);
   const scaleVis = win(2.6, 3.0, 5.4, 5.9, t);
   setFade('scale', scaleVis); setFade('person', scaleVis);
+  person.userData.mixer.setTime(2.0 + (t % 6));
 
   studioCam(t);
 
