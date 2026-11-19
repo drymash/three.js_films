@@ -408,13 +408,64 @@ function bmp(x) {
   });
   return g;
 }
+/* T-72B from the reference drawings: wedge nose with a long upper glacis, low hull with fenders, rubber side
+   skirts carrying a row of reactive-armour blocks, six large road wheels, front idler, rear sprocket, three return
+   rollers, a low cast dome turret with chevron blocks on its face, commander's cupola with a machine gun, a very
+   long gun with sleeve segments and a fume extractor, two fuel drums and a log at the rear. Engine at the rear. */
 function tank(x) {
   const g = new THREE.Group(); g.position.set(x, 0, 0); field.add(g);
-  fmesh(new THREE.BoxGeometry(7.0, 1.0, 0.8), TR, 0.62, 0, 0.5, 1.35, g); fmesh(new THREE.BoxGeometry(7.0, 1.0, 0.8), TR, 0.62, 0, 0.5, -1.35, g);
-  fmesh(new THREE.BoxGeometry(6.8, 0.9, 3.4), OL, 0.42, 0, 1.3, 0, g);
-  fmesh(new THREE.BoxGeometry(1.9, 0.12, 2.8), OD, 0.98, -2.4, 1.8, 0, g);
-  fmesh(new THREE.CylinderGeometry(1.4, 1.65, 0.75, 10), OL, 0.4, 0.2, 2.1, 0, g);
-  fmesh(alongX(new THREE.CylinderGeometry(0.11, 0.13, 5.0, 8)), OD, 0.34, 3.4, 2.15, 0, g);
+  const P = [[-3.42, 0.45], [2.78, 0.45], [3.45, 1.0], [2.0, 1.55], [-3.45, 1.55]];
+  const hg = new THREE.ExtrudeGeometry(new THREE.Shape(P.map(([a, b]) => new THREE.Vector2(a, b))), { depth: 2.2, bevelEnabled: false });
+  hg.translate(0, 0, -1.1);
+  fmesh(hg, OL, 0.42, 0, 0, 0, g);
+  fmesh(new THREE.BoxGeometry(6.7, 0.06, 3.5), OL, 0.44, -0.3, 1.57, 0, g);
+  /* blocks across the upper glacis */
+  const n0 = V(3.45, 1.0, 0), n1 = V(2.0, 1.55, 0), slope = -Math.atan2(n1.y - n0.y, n0.x - n1.x);
+  for (let r = 0; r < 3; r++) for (let c = -4; c <= 4; c++) {
+    const p = n0.clone().lerp(n1, 0.2 + r * 0.28);
+    const b = fmesh(new THREE.BoxGeometry(0.42, 0.1, 0.34), OD, 0.43, p.x, p.y + 0.06, c * 0.37, g); b.rotation.z = slope;
+  }
+  /* rear: engine deck, exhaust on the left, drums and log */
+  fmesh(new THREE.BoxGeometry(2.0, 0.06, 2.4), OD, 0.97, -2.35, 1.6, 0, g);
+  fmesh(new THREE.BoxGeometry(0.5, 0.2, 0.3), OD, 1.0, -2.7, 1.58, -1.65, g);
+  [0.75, -0.75].forEach(dz => fmesh(across(new THREE.CylinderGeometry(0.3, 0.3, 0.85, 12)), 0x434a28, 0.4, -3.68, 1.25, dz, g));
+  fmesh(across(new THREE.CylinderGeometry(0.13, 0.13, 3.1, 8)), 0x4a3f2c, 0.38, -3.7, 1.75, 0, g);
+  /* turret: low dome, chevron blocks, cupola, machine gun */
+  const dome = new THREE.SphereGeometry(1.32, 18, 10, 0, Math.PI * 2, 0, Math.PI / 2); dome.scale(1.18, 0.55, 1.0);
+  fmesh(dome, OL, 0.4, 0.2, 1.58, 0, g);
+  [1, -1].forEach(s => { for (let k = 0; k < 5; k++) {
+    const a = s * (0.22 + k * 0.17), rr = 1.32 - k * 0.04;
+    const b = fmesh(new THREE.BoxGeometry(0.36, 0.22, 0.12), OD, 0.42, 0.2 + Math.cos(a) * rr * 1.12, 1.82 - k * 0.03, Math.sin(a) * rr, g);
+    b.rotation.y = -a + Math.PI / 2; b.rotation.x = 0.25 * s;
+  } });
+  fmesh(new THREE.CylinderGeometry(0.36, 0.38, 0.22, 12), OD, 0.4, -0.15, 2.38, 0.5, g);
+  fmesh(alongX(new THREE.CylinderGeometry(0.035, 0.035, 1.2, 6)), OD, 0.32, 0.4, 2.62, 0.5, g);
+  fmesh(new THREE.BoxGeometry(0.3, 0.26, 0.24), OD, 0.38, 0.55, 2.3, -0.45, g);
+  /* the long gun: sleeve segments and a fume extractor */
+  const gun = new THREE.Group(); gun.position.set(1.25, 2.02, 0); gun.rotation.z = 0.02; g.add(gun);
+  fmesh(alongX(new THREE.CylinderGeometry(0.085, 0.09, 5.9, 10)), OD, 0.3, 2.95, 0, 0, gun);
+  [0.6, 1.5, 3.4, 4.4].forEach(sx => fmesh(alongX(new THREE.CylinderGeometry(0.11, 0.11, 0.7, 10)), OD, 0.3, sx, 0, 0, gun));
+  fmesh(alongX(new THREE.CylinderGeometry(0.15, 0.15, 0.55, 12)), OD, 0.3, 2.45, 0, 0, gun);
+  fmesh(alongX(new THREE.CylinderGeometry(0.1, 0.1, 0.18, 10)), OD, 0.3, 5.85, 0, 0, gun);
+  /* running gear and skirts, both sides */
+  const ts = new THREE.Shape([new THREE.Vector2(-0.03, -0.29), new THREE.Vector2(0.03, -0.29), new THREE.Vector2(0.03, 0.29), new THREE.Vector2(-0.03, 0.29)]);
+  const tp = new THREE.CatmullRomCurve3([V(3.3, 0.6, 0), V(3.02, 0.95, 0), V(1.5, 1.06, 0), V(-1.5, 1.06, 0), V(-3.15, 0.98, 0), V(-3.52, 0.62, 0),
+    V(-3.05, 0.08, 0), V(-2.4, 0.05, 0), V(2.4, 0.05, 0), V(3.0, 0.2, 0)], true);
+  const tg = new THREE.ExtrudeGeometry(ts, { steps: 150, extrudePath: tp, bevelEnabled: false });
+  [1, -1].forEach(s => {
+    const zc = s * 1.42;
+    fmesh(tg, TR, 0.6, 0, 0, zc, g);
+    for (let i = 0; i < 6; i++) {
+      const xw = 2.3 - i * 0.9;
+      fmesh(across(new THREE.CylinderGeometry(0.375, 0.375, 0.24, 18)), 0x3b3d2c, 0.6, xw, 0.42, zc, g);
+      fmesh(across(new THREE.CylinderGeometry(0.14, 0.14, 0.28, 10)), TR, 0.68, xw, 0.42, zc, g);
+    }
+    fmesh(across(new THREE.CylinderGeometry(0.3, 0.3, 0.24, 12)), TR, 0.58, 3.02, 0.6, zc, g);
+    fmesh(across(new THREE.CylinderGeometry(0.32, 0.32, 0.24, 10)), TR, 0.7, -3.2, 0.65, zc, g);
+    [1.5, 0.0, -1.5].forEach(rx => fmesh(across(new THREE.CylinderGeometry(0.11, 0.11, 0.2, 8)), TR, 0.6, rx, 0.96, zc, g));
+    fmesh(new THREE.BoxGeometry(6.2, 0.46, 0.04), 0x34361f, 0.44, -0.15, 1.3, s * 1.76, g);
+    for (let k = 0; k < 6; k++) fmesh(new THREE.BoxGeometry(0.4, 0.3, 0.12), OD, 0.43, 2.55 - k * 0.44, 1.32, s * 1.82, g);
+  });
   return g;
 }
 /* KamAZ 8x8 with a canvas tilt, from the reference photos: cab-over with a near-vertical front and wide screen,
