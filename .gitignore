@@ -1,0 +1,5 @@
+renders/*.wav
+*-frames/
+*-sheet.png
+teardown-out/
+.DS_Store

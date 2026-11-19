@@ -1,0 +1,8 @@
+{
+  "duration": 34.3,
+  "fps": 30,
+  "book": {"cover_open": 0.4, "cover_land": 2.25, "draw": [2.3, 3.9], "dims": 3.6, "rise": 3.9, "prop_start": 4.4},
+  "explode": {"out": 5.4, "labels": [6.3, 6.43, 6.56, 6.69, 6.82, 6.95, 7.08], "labels_off": 8.45, "back": 8.7, "snap": 9.55},
+  "flyoff": {"start": 9.8, "cut": 11.3},
+  "field": {"wide": 11.3, "chase": 15.3, "sensor": 19.8, "flyby": 22.8, "overhead": 24.2, "turn": 26.3, "sun": 30.3, "sun_cross": 32.5, "end": 34.3}
+}
