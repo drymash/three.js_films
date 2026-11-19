@@ -1,0 +1,506 @@
+<title>Вміння № 1 · Не сідати</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;600&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: full-bleed studio scene, vertical-first; chapter bar top-left, rubric + clock top, captions in the lower third above the Reels UI. Single dark look by design. */
+:root{
+  --bg:#0b0f16;
+  --fg:#eef1f4;
+  --muted:#8e9aab;
+  --holo:#5aa8ff;
+  --accent:#ff7a3d;
+  --display:'Oswald','Arial Narrow',Arial,sans-serif;
+  --mono:'JetBrains Mono',ui-monospace,Menlo,Consolas,monospace;
+  color-scheme:dark;
+}
+[hidden]{display:none!important}
+html,body{height:100%;margin:0;background:var(--bg);color:var(--fg);overflow:hidden}
+#stage{position:fixed;inset:0}
+#stage canvas{display:block;width:100%;height:100%}
+#fade{position:fixed;inset:0;background:#000;pointer-events:none;z-index:9}
+.ui{position:fixed;z-index:5;pointer-events:none}
+.corners{inset:2.2vmin}
+.corners i{position:absolute;width:3.2vmin;height:3.2vmin;border:0 solid rgba(255,255,255,.35)}
+.corners i:nth-child(1){left:0;top:0;border-left-width:1.5px;border-top-width:1.5px}
+.corners i:nth-child(2){right:0;top:0;border-right-width:1.5px;border-top-width:1.5px}
+.corners i:nth-child(3){left:0;bottom:0;border-left-width:1.5px;border-bottom-width:1.5px}
+.corners i:nth-child(4){right:0;bottom:0;border-right-width:1.5px;border-bottom-width:1.5px}
+#chapter{left:max(5vmin,env(safe-area-inset-left,0px));top:6.5vh;font:600 clamp(10px,1.9vmin,16px)/1.3 var(--mono);letter-spacing:.14em;color:var(--fg);text-transform:uppercase}
+#chapter .bar{margin-top:8px;width:22vmin;height:2px;background:rgba(255,255,255,.18)}
+#chapter .bar b{display:block;height:100%;width:0;background:var(--accent)}
+#chapter .num{color:var(--accent)}
+#mark{right:max(5vmin,env(safe-area-inset-right,0px));top:6.5vh;font:600 clamp(10px,1.9vmin,16px)/1.3 var(--mono);letter-spacing:.14em;color:var(--muted);text-align:right}
+#mark .air{display:block;margin-top:6px;color:var(--accent);opacity:0}
+
+#rubric{left:0;right:0;top:15vh;text-align:center;opacity:0}
+#rubric .eyebrow{font:600 clamp(12px,2.4vmin,22px)/1 var(--mono);letter-spacing:.3em;color:var(--accent)}
+#rubric h1{margin:1.2vh 0 0;font:600 clamp(40px,10vmin,120px)/.95 var(--display);letter-spacing:.05em;text-transform:uppercase}
+#clock{margin-top:3vh;font:600 clamp(64px,17vmin,220px)/1 var(--mono);letter-spacing:-.02em;font-variant-numeric:tabular-nums;color:var(--fg)}
+#clock .u{display:block;margin-top:.6vh;font:400 clamp(10px,1.8vmin,16px)/1 var(--mono);letter-spacing:.4em;color:var(--muted)}
+#status{margin-top:2vh;height:3.2em;font:600 clamp(12px,2.4vmin,22px)/1.5 var(--mono);letter-spacing:.12em;text-transform:uppercase}
+#status span{display:block;opacity:0}
+#status .rec{color:var(--accent)}
+
+#callouts{inset:0}
+#callouts svg{position:absolute;inset:0;width:100%;height:100%;overflow:visible}
+#callouts line{stroke:var(--accent);stroke-width:1.5;stroke-opacity:.9}
+.co{position:absolute;display:flex;align-items:center;gap:8px;transform:translate(-6px,-50%);opacity:0;white-space:nowrap;
+  font:600 clamp(12px,2.5vmin,24px)/1.2 var(--mono);letter-spacing:.04em;color:#fff}
+.co.left{flex-direction:row-reverse;transform:translate(calc(-100% + 6px),-50%)}
+.co i{width:11px;height:11px;border-radius:50%;background:var(--accent);box-shadow:0 0 0 4px rgba(255,122,61,.28);flex:none}
+.co span{background:rgba(8,14,26,.82);padding:6px 11px;border:1px solid rgba(255,255,255,.2);border-radius:3px}
+.co small{display:block;font-weight:400;color:var(--muted);font-size:.74em;margin-top:2px}
+.co.white i{background:#fff;box-shadow:0 0 0 4px rgba(255,255,255,.2)}
+
+#speedo{left:50%;bottom:28vh;width:min(62vmin,520px);transform:translateX(-50%);opacity:0}
+#speedo svg{width:100%;height:auto;display:block}
+#speedo .val{position:absolute;left:0;right:0;top:46%;text-align:center;font:600 clamp(36px,9vmin,96px)/1 var(--mono);font-variant-numeric:tabular-nums}
+#speedo .lab{position:absolute;left:0;right:0;top:72%;text-align:center;font:600 clamp(10px,2vmin,18px)/1.4 var(--mono);letter-spacing:.18em;color:var(--muted)}
+#speedo .lab b{color:var(--accent);font-weight:600}
+
+#fuelcard{left:50%;top:15vh;transform:translateX(-50%);text-align:center;opacity:0}
+#fuelcard .big{font:600 clamp(28px,7vmin,96px)/1 var(--display);letter-spacing:.03em;white-space:nowrap}
+#fuelcard .big em{font-style:normal;color:var(--accent)}
+#fuelcard .sub{margin-top:1.4vh;font:600 clamp(11px,2.2vmin,20px)/1.5 var(--mono);letter-spacing:.16em;color:var(--muted);text-transform:uppercase}
+#fuelcard .day{display:block;margin-top:1vh;color:var(--accent);opacity:0}
+
+#caps{left:max(7vw,16px);right:max(7vw,16px);bottom:21vh;text-align:center;
+  font:700 clamp(18px,4.4vmin,40px)/1.25 Arial,Helvetica,sans-serif;color:#fff;
+  text-shadow:0 2px 0 rgba(0,0,0,.65),0 0 14px rgba(0,0,0,.6);text-wrap:balance}
+
+#controls{position:fixed;left:0;right:0;bottom:0;z-index:10;display:flex;align-items:center;gap:12px;
+  padding-block:10px calc(10px + env(safe-area-inset-bottom,0px));
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));
+  font:400 12px/1 var(--mono);color:var(--muted);opacity:.35;transition:opacity .25s}
+#controls:hover,#controls:focus-within{opacity:1}
+#controls button{all:unset;cursor:pointer;width:30px;height:30px;display:grid;place-items:center;border-radius:50%;color:var(--fg);background:rgba(255,255,255,.08)}
+#controls button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+#controls svg{width:14px;height:14px;fill:currentColor}
+#scrub{flex:1;min-width:0;accent-color:var(--accent)}
+#time{font-variant-numeric:tabular-nums;min-width:9ch;text-align:right;color:var(--fg)}
+</style>
+
+<div id="stage"></div>
+<div class="ui corners"><i></i><i></i><i></i><i></i></div>
+<div class="ui" id="chapter"><span class="num">03 / 09</span> · ВМІННЯ № 1<div class="bar"><b id="prog"></b></div></div>
+<div class="ui" id="mark">BAYRAKTAR TB2<span class="air" id="air">У ПОВІТРІ · 27:03</span></div>
+
+<div class="ui" id="rubric">
+  <div class="eyebrow">ВМІННЯ № 1</div>
+  <h1>Не сідати</h1>
+  <div id="clock"><span id="clockv">00:00</span><span class="u">ГОД : ХВ</span></div>
+  <div id="status"><span id="st1">За паспортом · 20+ год</span><span id="st2" class="rec">Рекорд · 27 год 03 хв</span></div>
+</div>
+
+<div class="ui" id="callouts"></div>
+
+<div class="ui" id="speedo">
+  <svg id="speedsvg" viewBox="0 0 300 220"></svg>
+  <div class="val" id="speedv">0</div>
+  <div class="lab">КМ/ГОД · <b>КРЕЙСЕРСЬКА</b></div>
+</div>
+
+<div class="ui" id="fuelcard">
+  <div class="big"><em>300 л</em> = 4 × 75 л</div>
+  <div class="sub">бензин · 4 баки позашляховика<span class="day" id="day">≈ доба в повітрі</span></div>
+</div>
+
+<div class="ui" id="caps"></div>
+<div id="fade"></div>
+
+<div id="controls">
+  <button id="play" type="button" aria-label="Пауза">
+    <svg id="icoPause" viewBox="0 0 16 16"><rect x="3" y="2" width="3.5" height="12"/><rect x="9.5" y="2" width="3.5" height="12"/></svg>
+    <svg id="icoPlay" viewBox="0 0 16 16" hidden><path d="M4 2l10 6-10 6z"/></svg>
+  </button>
+  <input id="scrub" type="range" min="0" max="34.5" step="0.01" value="0" aria-label="Час сцени">
+  <span id="time">00.0 / 34.5</span>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/shaders/CopyShader.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/shaders/LuminosityHighPassShader.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/EffectComposer.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/RenderPass.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/ShaderPass.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/UnrealBloomPass.js"></script>
+<script>
+(() => {
+const DUR = 34.5;
+const $ = s => document.querySelector(s);
+const clamp01 = x => Math.min(1, Math.max(0, x));
+const smooth = (a, b, x) => { const t = clamp01((x - a) / (b - a)); return t * t * (3 - 2 * t); };
+const lerp = (a, b, t) => a + (b - a) * t;
+const win = (a, b, c, d, t) => smooth(a, b, t) * (1 - smooth(c, d, t));
+const NOCAPS = new URLSearchParams(location.search).has('nocaps');
+
+/* ---------- timeline: voice-over lines (retime here after the recording) ---------- */
+const CAPS = [
+  [0.4, 3.5, 'За паспортом — понад двадцять годин у повітрі.'],
+  [3.6, 5.4, 'А рекорд — двадцять сім.'],
+  [5.5, 6.9, 'Без жодної дозаправки.'],
+  [7.4, 9.2, 'Секрет — не в потужності.'],
+  [9.2, 10.8, 'А в її відсутності.'],
+  [11.0, 14.0, 'Двигун — сто кінських сил, як у малолітражки.'],
+  [14.1, 15.7, 'Крейсерська — сто тридцять.'],
+  [15.8, 18.2, 'Ваше авто на трасі його обжене.'],
+  [18.6, 21.5, 'Крило — довге й тонке, як у планера.'],
+  [21.6, 23.7, 'Воно не продирається крізь повітря.'],
+  [23.8, 25.5, 'Воно на ньому лежить.'],
+  [25.9, 27.9, 'Корпус — переважно з вуглепластику.'],
+  [28.0, 30.4, 'А в баках — триста літрів бензину.'],
+  [30.5, 32.0, 'Чотири баки позашляховика.'],
+  [32.1, 34.3, 'І цього вистачає на добу.'],
+];
+
+/* ---------- renderer ---------- */
+const renderer = new THREE.WebGLRenderer({ antialias: true });
+renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+renderer.setSize(innerWidth, innerHeight);
+$('#stage').appendChild(renderer.domElement);
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x0b0f16);
+const camera = new THREE.PerspectiveCamera(40, innerWidth / innerHeight, 0.1, 400);
+function fitFov(f) {
+  const a = innerWidth / innerHeight;
+  if (a >= 1) return f;
+  const tanH = Math.tan(f * Math.PI / 360) * (16 / 9) * 0.6;
+  return 2 * Math.atan(tanH / a) * 180 / Math.PI;
+}
+
+/* studio floor: blueprint grid fading out from a pool of light */
+const FLOOR_Y = -1.16;
+const floor = new THREE.Mesh(new THREE.PlaneGeometry(200, 200), new THREE.ShaderMaterial({
+  depthWrite: false,
+  vertexShader: `varying vec3 vW; void main(){ vec4 w = modelMatrix * vec4(position,1.0); vW = w.xyz; gl_Position = projectionMatrix * viewMatrix * w; }`,
+  fragmentShader: `varying vec3 vW;
+    float line(float c, float w){ float f = abs(fract(c - 0.5) - 0.5) / fwidth(c); return 1.0 - min(f / w, 1.0); }
+    void main(){
+      float r = length(vW.xz);
+      float pool = exp(-r * r / 160.0);
+      float g = max(line(vW.x, 1.0), line(vW.z, 1.0)) * 0.10 + max(line(vW.x / 5.0, 1.2), line(vW.z / 5.0, 1.2)) * 0.16;
+      vec3 base = vec3(0.043, 0.059, 0.086);
+      vec3 c = base + vec3(0.05, 0.08, 0.12) * pool + vec3(0.25, 0.5, 0.9) * g * (0.25 + pool);
+      gl_FragColor = vec4(c, 1.0);
+    }`,
+  extensions: { derivatives: true }
+}));
+floor.rotation.x = -Math.PI / 2; floor.position.y = FLOOR_Y; scene.add(floor);
+
+/* ---------- hologram material: blue rim glow, blends to solid orange when highlighted ---------- */
+const holoMats = [];
+function holoMat() {
+  const m = new THREE.ShaderMaterial({
+    transparent: true, depthWrite: false, side: THREE.DoubleSide, blending: THREE.AdditiveBlending,
+    uniforms: { uHi: { value: 0 }, uTime: { value: 0 }, uFade: { value: 1 } },
+    vertexShader: `varying vec3 vN; varying vec3 vV; varying vec3 vW;
+      void main(){ vec4 mv = modelViewMatrix * vec4(position,1.0); vN = normalize(normalMatrix * normal); vV = normalize(-mv.xyz);
+        vW = (modelMatrix * vec4(position,1.0)).xyz; gl_Position = projectionMatrix * mv; }`,
+    fragmentShader: `uniform float uHi, uTime, uFade; varying vec3 vN; varying vec3 vV; varying vec3 vW;
+      void main(){
+        float rim = pow(1.0 - clamp(abs(dot(normalize(vN), normalize(vV))), 0.0, 1.0), 2.0);
+        float scan = 0.5 + 0.5 * sin(vW.y * 60.0 - uTime * 3.0);
+        vec3 blue = vec3(0.22, 0.50, 1.0), org = vec3(1.0, 0.42, 0.16);
+        vec3 c = mix(blue * (0.10 + 0.75 * rim + 0.05 * scan), org * (0.55 + 0.6 * rim), uHi);
+        gl_FragColor = vec4(c * uFade, 1.0);
+      }`
+  });
+  holoMats.push(m); return m;
+}
+const edgeMat = (op) => new THREE.LineBasicMaterial({ color: 0x5aa8ff, transparent: true, opacity: op, depthWrite: false, blending: THREE.AdditiveBlending });
+
+/* ---------- the drone, built in parts so each can be highlighted (forward = +x) ---------- */
+const drone = new THREE.Group(); scene.add(drone);
+const parts = {};
+function add(kind, geo, x, y, z, rx, parent) {
+  const mat = holoMat();
+  const mesh = new THREE.Mesh(geo, mat);
+  mesh.position.set(x, y, z); if (rx) mesh.rotation.x = rx;
+  const em = edgeMat(0.38);
+  mesh.add(new THREE.LineSegments(new THREE.EdgesGeometry(geo, 28), em));
+  (parent || drone).add(mesh);
+  (parts[kind] = parts[kind] || []).push({ mat, em });
+  return mesh;
+}
+const cyl = (r1, r2, h, s) => new THREE.CylinderGeometry(r1, r2, h, s || 14);
+const alongX = g => { g.rotateZ(-Math.PI / 2); return g; };
+const across = g => { g.rotateX(Math.PI / 2); return g; };
+{
+  const prof = [[0,-3.25],[0.14,-3.2],[0.22,-2.9],[0.34,-2.0],[0.44,-0.8],[0.48,0.4],[0.48,1.8],[0.44,2.5],[0.34,2.9],[0.18,3.15],[0,3.27]].map(([r, y]) => new THREE.Vector2(r, y));
+  const fg = new THREE.LatheGeometry(prof, 28); fg.rotateZ(-Math.PI / 2); fg.scale(1, 1.05, 0.92);
+  add('fus', fg, 0, 0, 0);
+  const ws = new THREE.Shape();
+  ws.moveTo(0.5, 0); ws.lineTo(0.3, 6); ws.lineTo(-0.2, 6.05); ws.lineTo(-0.45, 0); ws.lineTo(-0.2, -6.05); ws.lineTo(0.3, -6); ws.closePath();
+  const wg = new THREE.ExtrudeGeometry(ws, { depth: 0.09, bevelEnabled: true, bevelThickness: 0.03, bevelSize: 0.03, bevelSegments: 1 });
+  wg.rotateX(Math.PI / 2);
+  add('wing', wg, 0.45, 0.5, 0);
+  [1, -1].forEach(s => {
+    add('boom', alongX(cyl(0.06, 0.07, 4.6, 10)), -1.9, 0.42, 1.3 * s);
+    const fin = add('fin', new THREE.BoxGeometry(0.7, 1.35, 0.05), -4.0, 0.42 - 0.67 * Math.cos(0.7), (1.3 + 0.67 * Math.sin(0.7)) * s);
+    fin.rotation.x = -0.7 * s;
+    add('gear', new THREE.BoxGeometry(0.12, 0.9, 0.05), 0.3, -0.62, 0.42 * s, 0.7 * s);
+    add('gear', across(cyl(0.15, 0.15, 0.08, 14)), 0.3, -0.98, 0.72 * s);
+  });
+  add('gear', cyl(0.03, 0.03, 0.6, 6), 2.7, -0.7, 0);
+  add('gear', across(cyl(0.12, 0.12, 0.07, 14)), 2.7, -1.0, 0);
+  add('sensor', new THREE.SphereGeometry(0.24, 20, 14), 2.25, -0.62, 0);
+  add('sensor', cyl(0.1, 0.1, 0.18, 10), 2.25, -0.42, 0);
+  add('antenna', new THREE.BoxGeometry(0.25, 0.22, 0.04), 1.3, 0.55, 0);
+  /* inside the hull: a flat-four engine in the tail and the fuel tank amidships */
+  add('engine', new THREE.BoxGeometry(0.62, 0.26, 0.26), -2.55, 0, 0);
+  [-0.12, 0.12].forEach(dx => [1, -1].forEach(s => add('engine', across(cyl(0.07, 0.07, 0.22, 10)), -2.55 + dx, 0, 0.2 * s)));
+  add('engine', alongX(cyl(0.05, 0.05, 0.5, 8)), -3.0, 0, 0);
+  add('fuel', alongX(cyl(0.3, 0.3, 1.9, 20)), 0.35, 0.02, 0);
+  const prop = new THREE.Group(); prop.position.set(-3.38, 0, 0); drone.add(prop); drone.userData.prop = prop;
+  add('prop', new THREE.BoxGeometry(0.05, 1.7, 0.13), 0, 0, 0, 0.15, prop);
+  add('prop', alongX(new THREE.ConeGeometry(0.13, 0.35, 12)), -0.1, 0, 0, 0, prop);
+}
+const setHi = (kind, v) => (parts[kind] || []).forEach(({ mat, em }) => {
+  mat.uniforms.uHi.value = v;
+  em.color.setRGB(lerp(0.35, 1.0, v), lerp(0.66, 0.48, v), lerp(1.0, 0.24, v));
+  em.opacity = lerp(0.38, 0.9, v);
+});
+
+/* ---------- comparison: a generic fighter planform laid over the drone (top view) ---------- */
+const FIGHTER = [[7.5, 0], [2, 0.9], [-3.5, 5], [-4.6, 5], [-4.6, 1.1], [-6.5, 2.6], [-7.5, 2.6], [-7.5, 0]];
+const fighterPts = FIGHTER.concat(FIGHTER.slice(1, -1).reverse().map(([x, z]) => [x, -z]));
+const fShape = new THREE.Shape(fighterPts.map(([x, z]) => new THREE.Vector2(x, z)));
+const fGeo = new THREE.ShapeGeometry(fShape); fGeo.rotateX(Math.PI / 2);
+const fFill = new THREE.Mesh(fGeo, new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0, depthTest: false, depthWrite: false }));
+fFill.position.y = 1.4; fFill.renderOrder = 5; scene.add(fFill);
+const fLineGeo = new THREE.BufferGeometry().setFromPoints(fighterPts.concat([fighterPts[0]]).map(([x, z]) => new THREE.Vector3(x, 0, z)));
+const fLine = new THREE.Line(fLineGeo, new THREE.LineDashedMaterial({ color: 0xffffff, dashSize: 0.35, gapSize: 0.22, transparent: true, opacity: 0, depthTest: false }));
+fLine.computeLineDistances(); fLine.position.y = 1.42; fLine.renderOrder = 6; scene.add(fLine);
+
+/* airflow streaks gliding over the wing, nose to tail */
+const FLOW = 30, flowPos = new Float32Array(FLOW * 6);
+const flowGeo = new THREE.BufferGeometry(); flowGeo.setAttribute('position', new THREE.BufferAttribute(flowPos, 3));
+const flowMat = new THREE.LineBasicMaterial({ color: 0x9fd0ff, transparent: true, opacity: 0, blending: THREE.AdditiveBlending, depthWrite: false });
+const flow = new THREE.LineSegments(flowGeo, flowMat); flow.frustumCulled = false; scene.add(flow);
+function updateFlow(t) {
+  for (let i = 0; i < FLOW; i++) {
+    const z = -7.2 + 14.4 * (i + 0.5) / FLOW;
+    const ph = ((t * 0.55 + (i * 0.618) % 1) % 1);
+    const x = 6 - ph * 13, len = 1.6;
+    flowPos.set([x, 0.62, z, x - len, 0.62, z], i * 6);
+  }
+  flowGeo.attributes.position.needsUpdate = true;
+}
+
+/* fuel volume at real scale: 300 l as one cube, then four 75 l cubes */
+const cubeMat = holoMat(); cubeMat.uniforms.uHi.value = 1; cubeMat.uniforms.uFade.value = 0.55;
+const S300 = Math.cbrt(0.3), S75 = Math.cbrt(0.075);
+const CUBE_AT = new THREE.Vector3(2.4, FLOOR_Y, 3.1);
+const big = new THREE.Mesh(new THREE.BoxGeometry(S300, S300, S300), cubeMat);
+big.add(new THREE.LineSegments(new THREE.EdgesGeometry(big.geometry), new THREE.LineBasicMaterial({ color: 0xffb085 })));
+scene.add(big);
+const smalls = [0, 1, 2, 3].map(i => {
+  const m = new THREE.Mesh(new THREE.BoxGeometry(S75, S75, S75), cubeMat);
+  m.add(new THREE.LineSegments(new THREE.EdgesGeometry(m.geometry), new THREE.LineBasicMaterial({ color: 0xffb085 })));
+  scene.add(m); return m;
+});
+
+/* ---------- callouts projected from 3D anchors ---------- */
+const coLayer = $('#callouts');
+const svgNS = 'http://www.w3.org/2000/svg';
+const lead = document.createElementNS(svgNS, 'svg'); coLayer.appendChild(lead);
+function callout(name, sub, anchor, offset, t0, t1, white) {
+  const el = document.createElement('div'); el.className = 'co' + (white ? ' white' : '');
+  el.innerHTML = `<i></i><span>${name}${sub ? `<small>${sub}</small>` : ''}</span>`;
+  coLayer.appendChild(el);
+  const line = document.createElementNS(svgNS, 'line'); lead.appendChild(line);
+  if (white) line.style.stroke = '#fff';
+  return { el, line, anchor, offset, t0, t1 };
+}
+const CALL = [
+  callout('■ ДВИГУН', '100 к.с. · у хвості', new THREE.Vector3(-2.55, 0.15, 0.2), [0.06, -0.14], 9.4, 18.1),
+  callout('■ TB2 · КРИЛО', 'довге й тонке · 12 м', new THREE.Vector3(0.4, 0.6, 5.2), [0.02, -0.10], 19.6, 25.6),
+  callout('■ ВИНИЩУВАЧ', 'коротке й широке', new THREE.Vector3(-3.9, 1.4, -4.6), [-0.02, 0.09], 20.6, 25.6, true),
+  callout('■ КОРПУС', 'переважно вуглепластик', new THREE.Vector3(1.6, 0.48, 0.1), [0.04, -0.12], 26.4, 28.2),
+  callout('■ ПАЛИВНИЙ БАК', '300 л бензину', new THREE.Vector3(0.35, 0.3, 0.1), [0.05, -0.12], 28.4, 30.6),
+];
+const _v = new THREE.Vector3();
+function updateCallouts(t) {
+  camera.updateMatrixWorld();
+  CALL.forEach(c => {
+    const a = win(c.t0, c.t0 + 0.35, c.t1 - 0.3, c.t1, t);
+    c.el.style.opacity = a; c.line.style.opacity = a;
+    if (a <= 0) return;
+    _v.copy(c.anchor).project(camera);
+    const ax = (_v.x + 1) / 2 * innerWidth, ay = (1 - _v.y) / 2 * innerHeight;
+    let x = ax + c.offset[0] * innerWidth, y = ay + c.offset[1] * innerHeight;
+    const left = x < innerWidth / 2 && c.offset[0] < 0;
+    c.el.classList.toggle('left', left);
+    const w = c.el.offsetWidth, pad = 12;
+    x = left ? Math.max(x, w - 6 + pad) : Math.min(x, innerWidth - w + 6 - pad);
+    c.el.style.left = x + 'px'; c.el.style.top = y + 'px';
+    c.line.setAttribute('x1', ax); c.line.setAttribute('y1', ay); c.line.setAttribute('x2', x); c.line.setAttribute('y2', y);
+  });
+}
+
+/* ---------- speedometer (SVG) ---------- */
+const sp = $('#speedsvg');
+(function drawSpeedo() {
+  const cx = 150, cy = 150, r = 120, A0 = 225, SW = 270, VMAX = 200;
+  const pt = (deg, rr) => [cx + rr * Math.cos(deg * Math.PI / 180), cy - rr * Math.sin(deg * Math.PI / 180)];
+  const arc = (v0, v1, rr) => { const a0 = A0 - SW * v0 / VMAX, a1 = A0 - SW * v1 / VMAX; const [x0, y0] = pt(a0, rr), [x1, y1] = pt(a1, rr);
+    return `M${x0},${y0} A${rr},${rr} 0 ${a0 - a1 > 180 ? 1 : 0} 1 ${x1},${y1}`; };
+  let h = `<path d="${arc(0, 200, r)}" fill="none" stroke="rgba(255,255,255,.18)" stroke-width="3"/>`;
+  h += `<path id="sparc" d="${arc(0, 0.01, r)}" fill="none" stroke="#ff7a3d" stroke-width="5" stroke-linecap="round"/>`;
+  for (let v = 0; v <= 200; v += 10) {
+    const a = A0 - SW * v / VMAX, major = v % 40 === 0;
+    const [x0, y0] = pt(a, r - 8), [x1, y1] = pt(a, r - (major ? 22 : 14));
+    h += `<line x1="${x0}" y1="${y0}" x2="${x1}" y2="${y1}" stroke="rgba(255,255,255,${major ? .75 : .35})" stroke-width="${major ? 2 : 1}"/>`;
+    if (major) { const [tx, ty] = pt(a, r - 38); h += `<text x="${tx}" y="${ty + 4}" fill="#8e9aab" font-family="JetBrains Mono,monospace" font-size="12" text-anchor="middle">${v}</text>`; }
+  }
+  h += `<line id="needle" x1="${cx}" y1="${cy}" x2="${cx}" y2="${cy - r + 26}" stroke="#fff" stroke-width="3" stroke-linecap="round"/>`;
+  h += `<circle cx="${cx}" cy="${cy}" r="6" fill="#ff7a3d"/>`;
+  sp.innerHTML = h;
+  sp.userData = { arc, A0, SW, VMAX, cx, cy };
+})();
+function setSpeed(v) {
+  const { arc, A0, SW, VMAX, cx, cy } = sp.userData;
+  $('#sparc').setAttribute('d', arc(0, Math.max(0.01, v), 120));
+  const a = A0 - SW * v / VMAX;
+  $('#needle').setAttribute('transform', `rotate(${90 - a} ${cx} ${cy})`);
+  $('#speedv').textContent = Math.round(v);
+}
+
+/* ---------- camera path ---------- */
+const V = (x, y, z) => new THREE.Vector3(x, y, z);
+const KEYS = [ // t, position, look, up
+  [0.0,  V(9.6, 2.9, 8.8),   V(0, 0.15, 0),     V(0, 1, 0)],
+  [7.0,  V(11.6, 2.6, 5.2),  V(0, 0.15, 0),     V(0, 1, 0)],
+  [8.6,  V(-6.2, 3.4, 7.6),  V(-2.2, -0.1, 0),  V(0, 1, 0)],
+  [18.2, V(-5.4, 3.0, 6.6),  V(-2.2, -0.1, 0),  V(0, 1, 0)],
+  [19.8, V(0.0, 21.0, 0.0),  V(0.0, 0.0, 0.0),  V(1, 0, 0)],
+  [25.6, V(0.0, 19.0, 0.0),  V(0.0, 0.0, 0.0),  V(1, 0, 0)],
+  [27.2, V(6.6, 2.2, 7.4),   V(0.4, 0.0, 0.3),  V(0, 1, 0)],
+  [28.6, V(6.2, 2.0, 7.0),   V(0.4, 0.0, 0.3),  V(0, 1, 0)],
+  [30.4, V(4.6, 0.55, 6.3),  V(2.3, -0.65, 3.0), V(0, 1, 0)],
+  [34.5, V(4.3, 0.45, 5.9),  V(2.3, -0.7, 3.0), V(0, 1, 0)],
+];
+const _p = V(0, 0, 0), _l = V(0, 0, 0), _u = V(0, 0, 0);
+function cameraAt(t) {
+  let i = 0; while (i < KEYS.length - 2 && t > KEYS[i + 1][0]) i++;
+  const [t0, p0, l0, u0] = KEYS[i], [t1, p1, l1, u1] = KEYS[i + 1];
+  const u = smooth(t0, t1, t);
+  _p.copy(p0).lerp(p1, u); _l.copy(l0).lerp(l1, u); _u.copy(u0).lerp(u1, u).normalize();
+  if (t < 7.0) { // slow orbit while the clock runs
+    const a = lerp(0.74, 0.42, t / 7), r = 13.1;
+    _p.set(Math.cos(a) * r, 2.9 - t * 0.04, Math.sin(a) * r);
+  }
+  camera.position.copy(_p); camera.up.copy(_u); camera.lookAt(_l);
+  camera.fov = fitFov(40); camera.updateProjectionMatrix();
+}
+
+/* ---------- post: bloom + grain/vignette ---------- */
+const FilmShader = {
+  uniforms: { tDiffuse: { value: null }, uTime: { value: 0 }, uGrain: { value: 0.045 }, uVig: { value: 0.45 } },
+  vertexShader: `varying vec2 vUv; void main(){ vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.0); }`,
+  fragmentShader: `uniform sampler2D tDiffuse; uniform float uTime, uGrain, uVig; varying vec2 vUv;
+    float h(vec2 p){ return fract(sin(dot(p, vec2(12.9898,78.233))) * 43758.5453); }
+    void main(){ vec4 c = texture2D(tDiffuse, vUv);
+      c.rgb += (h(gl_FragCoord.xy + fract(uTime * 13.0) * 517.0) - 0.5) * uGrain;
+      vec2 d = (vUv - 0.5) * vec2(0.8, 1.0);
+      c.rgb *= mix(1.0 - uVig, 1.0, smoothstep(0.66, 0.2, length(d)));
+      gl_FragColor = c; }`
+};
+const rt = renderer.capabilities.isWebGL2 && THREE.WebGLMultisampleRenderTarget
+  ? new THREE.WebGLMultisampleRenderTarget(innerWidth * renderer.getPixelRatio(), innerHeight * renderer.getPixelRatio(), { format: THREE.RGBAFormat })
+  : undefined;
+const composer = new THREE.EffectComposer(renderer, rt);
+composer.setPixelRatio(renderer.getPixelRatio()); composer.setSize(innerWidth, innerHeight);
+composer.addPass(new THREE.RenderPass(scene, camera));
+const bloom = new THREE.UnrealBloomPass(new THREE.Vector2(innerWidth, innerHeight), 0.55, 0.5, 0.22);
+composer.addPass(bloom);
+const film = new THREE.ShaderPass(FilmShader); composer.addPass(film);
+
+/* ---------- per-frame ---------- */
+const pad2 = n => String(n).padStart(2, '0');
+function render(t) {
+  holoMats.forEach(m => { m.uniforms.uTime.value = t; });
+  drone.userData.prop.rotation.x = t * 9;
+  drone.position.y = 0.04 * Math.sin(t * 1.3);
+
+  /* highlights follow the voice */
+  setHi('engine', win(8.6, 9.4, 17.8, 18.6, t));
+  setHi('prop', 0.55 * win(9.0, 9.8, 17.8, 18.6, t));
+  setHi('wing', win(18.8, 19.8, 25.4, 26.0, t));
+  setHi('fus', 0.85 * win(25.9, 26.6, 27.8, 28.3, t));
+  setHi('fuel', win(28.0, 28.6, 33.6, 34.5, t));
+
+  /* clock: 00:00 → 20:00, hold, → 27:03 */
+  const mins = t < 3.0 ? 1200 * smooth(0.4, 3.0, t) : t < 3.9 ? 1200 : lerp(1200, 1623, 1 - Math.pow(1 - clamp01((t - 3.9) / 1.4), 3));
+  $('#clockv').textContent = pad2(Math.floor(mins / 60)) + ':' + pad2(Math.floor(mins % 60));
+  $('#rubric').style.opacity = win(0.1, 0.6, 6.7, 7.4, t);
+  $('#st1').style.opacity = win(2.9, 3.3, 5.0, 5.3, t);
+  $('#st2').style.opacity = smooth(5.2, 5.6, t);
+  $('#air').style.opacity = smooth(7.0, 7.6, t);
+
+  /* speedometer */
+  $('#speedo').style.opacity = win(13.6, 14.1, 17.9, 18.4, t);
+  setSpeed(130 * (1 - Math.pow(1 - clamp01((t - 14.0) / 1.5), 3)));
+
+  /* wing comparison */
+  const fa = win(20.4, 21.0, 25.4, 25.9, t);
+  fFill.material.opacity = 0.07 * fa; fLine.material.opacity = 0.9 * fa;
+  flowMat.opacity = 0.55 * win(21.4, 22.2, 25.3, 25.9, t);
+  updateFlow(t);
+
+  /* fuel cubes */
+  const ca = win(28.6, 29.0, 34.3, 34.6, t), split = smooth(30.5, 31.4, t);
+  big.visible = ca > 0 && split < 0.999;
+  big.scale.setScalar(Math.max(0.001, smooth(28.6, 29.2, t)) * (1 - split * 0.999));
+  big.position.copy(CUBE_AT).add(V(0, S300 / 2, 0));
+  smalls.forEach((m, i) => {
+    m.visible = split > 0.001;
+    const gx = (i % 2) - 0.5, gz = Math.floor(i / 2) - 0.5;
+    m.position.copy(CUBE_AT).add(V(gx * (S75 + 0.16) * split, S75 / 2, gz * (S75 + 0.16) * split));
+    m.scale.setScalar(Math.max(0.001, split));
+  });
+  $('#fuelcard').style.opacity = win(29.4, 29.9, 34.3, 34.5, t);
+  $('#day').style.opacity = smooth(32.2, 32.7, t);
+
+  /* captions */
+  const cap = NOCAPS ? null : CAPS.find(([a, b]) => t >= a && t < b);
+  const capEl = $('#caps');
+  if ((cap ? cap[2] : '') !== capEl.textContent) capEl.textContent = cap ? cap[2] : '';
+  capEl.style.opacity = cap ? win(cap[0], cap[0] + 0.12, cap[1] - 0.12, cap[1], t) : 0;
+
+  $('#prog').style.width = (100 * t / DUR) + '%';
+  $('#fade').style.opacity = 1 - smooth(0, 0.4, t);
+
+  cameraAt(t);
+  updateCallouts(t);
+  film.uniforms.uTime.value = t;
+  composer.render();
+}
+
+/* ---------- transport and capture contract ---------- */
+const scrub = $('#scrub'), timeEl = $('#time'), playBtn = $('#play');
+let t = 0, playing = !window.matchMedia('(prefers-reduced-motion: reduce)').matches, last = performance.now(), scrubbing = false;
+function setPlaying(p) { playing = p; $('#icoPause').hidden = !p; $('#icoPlay').hidden = p; playBtn.setAttribute('aria-label', p ? 'Пауза' : 'Відтворити'); }
+setPlaying(playing); if (!playing) t = 1.5;
+playBtn.addEventListener('click', () => setPlaying(!playing));
+scrub.addEventListener('input', () => { scrubbing = true; t = parseFloat(scrub.value); });
+scrub.addEventListener('change', () => { scrubbing = false; });
+function loop(now) {
+  const dt = Math.min(0.05, (now - last) / 1000); last = now;
+  if (playing && !scrubbing) { t += dt; if (t >= DUR) t -= DUR; }
+  render(t);
+  if (!scrubbing) scrub.value = t.toFixed(2);
+  timeEl.textContent = t.toFixed(1).padStart(4, '0') + ' / ' + DUR.toFixed(1);
+  requestAnimationFrame(loop);
+}
+window.addEventListener('resize', () => {
+  renderer.setSize(innerWidth, innerHeight); composer.setSize(innerWidth, innerHeight);
+  camera.aspect = innerWidth / innerHeight; camera.updateProjectionMatrix();
+});
+camera.aspect = innerWidth / innerHeight;
+window.DURATION = DUR; window.FPS = 30;
+window.seek = s => { t = s; render(s); };
+if (new URLSearchParams(location.search).has('render')) { $('#controls').hidden = true; render(0); }
+else requestAnimationFrame(loop);
+})();
+</script>
