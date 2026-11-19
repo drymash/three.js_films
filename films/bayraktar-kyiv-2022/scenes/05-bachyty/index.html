@@ -115,9 +115,10 @@ html,body{height:100%;margin:0;background:var(--bg);color:var(--fg);overflow:hid
 
 <div class="ui" id="recog">
   <figure id="rBmp">
-    <svg viewBox="0 0 200 80"><path d="M12 52 L20 40 L70 34 L84 26 L118 26 L124 34 L186 36 L190 52 Z M92 26 L92 18 L112 18 L116 26 M112 21 L170 17" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round"/>
-      <path d="M18 52 Q14 64 26 66 L176 66 Q190 64 184 52 Z" fill="none" stroke="currentColor" stroke-width="2.2"/>
-      <g fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="38" cy="59" r="5"/><circle cx="62" cy="60" r="5"/><circle cx="86" cy="60" r="5"/><circle cx="110" cy="60" r="5"/><circle cx="134" cy="60" r="5"/><circle cx="160" cy="59" r="5"/></g></svg>
+    <svg viewBox="0 0 200 80"><path d="M12 58 L162 58 L188 44 L129 24 L114 22 L12 22 Z" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round"/>
+      <path d="M80 22 L86 10 L118 10 L124 22 M124 15 L196 11 M90 6 L122 6" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round"/>
+      <path d="M14 66 Q10 72 20 72 L176 72 Q190 70 184 58" fill="none" stroke="currentColor" stroke-width="2"/>
+      <g fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="156" cy="61" r="9"/><circle cx="132" cy="61" r="9"/><circle cx="108" cy="61" r="9"/><circle cx="84" cy="61" r="9"/><circle cx="60" cy="61" r="9"/><circle cx="36" cy="61" r="9"/></g></svg>
     <figcaption>БМП · гусениці, башта</figcaption>
   </figure>
   <figure id="rTruck">
@@ -351,15 +352,59 @@ function hash(x, z) { const s = Math.sin(x * 127.1 + z * 311.7) * 43758.5453; re
   tm.userData.day = tm.material; tm.userData.ir = irMat(0.26); swaps.push(tm); field.add(tm);
 }
 const OL = 0x4b5229, OD = 0x3a3f20, TR = 0x2c2b26, CV = 0x5c5a3a;
+/* БМП-2 from the reference projections: wedge nose with a long ribbed glacis, low hull with inward-leaning sides,
+   six road wheels, front sprocket, rear idler, three return rollers, side skirts, small octagonal turret with a long
+   thin gun and a missile tube on the roof, four troop hatches, two rear doors. Engine sits front right. */
 function bmp(x) {
   const g = new THREE.Group(); g.position.set(x, 0, 0); field.add(g);
-  fmesh(new THREE.BoxGeometry(6.6, 0.9, 0.62), TR, 0.62, 0, 0.45, 1.25, g); fmesh(new THREE.BoxGeometry(6.6, 0.9, 0.62), TR, 0.62, 0, 0.45, -1.25, g);
-  fmesh(new THREE.BoxGeometry(6.4, 1.1, 2.9), OL, 0.42, -0.1, 1.2, 0, g);
-  const w = fmesh(new THREE.BoxGeometry(1.6, 0.12, 2.9), OL, 0.5, 3.15, 1.25, 0, g); w.rotation.z = -0.55;
-  fmesh(new THREE.BoxGeometry(1.5, 0.14, 1.3), OD, 0.97, 2.2, 1.82, 0.65, g);
-  fmesh(new THREE.BoxGeometry(0.5, 0.3, 0.3), OD, 1.0, 1.6, 1.85, 1.35, g);
-  fmesh(new THREE.CylinderGeometry(0.75, 0.9, 0.45, 10), OL, 0.38, 0.3, 2.0, 0, g);
-  const gun = fmesh(alongX(new THREE.CylinderGeometry(0.05, 0.05, 2.6, 6)), OD, 0.32, 1.7, 2.1, 0, g); gun.rotation.z = 0.04;
+  const P = [[-3.32, 0.45], [2.85, 0.45], [3.38, 0.98], [1.15, 1.78], [0.55, 1.86], [-3.38, 1.86]];
+  const hg = new THREE.ExtrudeGeometry(new THREE.Shape(P.map(([a, b]) => new THREE.Vector2(a, b))), { depth: 2.95, bevelEnabled: false });
+  hg.translate(0, 0, -1.475);
+  const hp = hg.attributes.position;
+  for (let i = 0; i < hp.count; i++) if (hp.getY(i) > 1.2) hp.setZ(i, hp.getZ(i) * 0.86);
+  hg.computeVertexNormals();
+  fmesh(hg, OL, 0.42, 0, 0, 0, g);
+  /* ribbed glacis */
+  const n0 = V(3.38, 0.98, 0), n1 = V(1.15, 1.78, 0), slope = -Math.atan2(n1.y - n0.y, n0.x - n1.x);
+  for (let k = 0; k < 11; k++) {
+    const p = n0.clone().lerp(n1, (k + 0.5) / 11);
+    const zw = lerp(2.85, 2.55, (k + 0.5) / 11);
+    const r = fmesh(new THREE.BoxGeometry(0.05, 0.05, zw), OD, 0.44, p.x, p.y + 0.03, 0, g); r.rotation.z = slope;
+  }
+  /* engine grille front right and exhaust on the right side: the warmest spots */
+  const gp = n0.clone().lerp(n1, 0.62);
+  const gr = fmesh(new THREE.BoxGeometry(0.85, 0.05, 0.85), OD, 0.97, gp.x, gp.y + 0.05, 0.62, g); gr.rotation.z = slope;
+  fmesh(new THREE.BoxGeometry(0.4, 0.22, 0.06), OD, 1.0, 1.9, 1.38, 1.3, g);
+  /* roof: troop hatches, rear doors */
+  [[-1.0, 0.55], [-1.0, -0.55], [-1.95, 0.55], [-1.95, -0.55]].forEach(([hx, hz]) => fmesh(new THREE.BoxGeometry(0.75, 0.05, 0.5), OD, 0.4, hx, 1.89, hz, g));
+  [0.55, -0.55].forEach(dz => fmesh(new THREE.BoxGeometry(0.05, 0.95, 0.72), OD, 0.4, -3.4, 1.05, dz, g));
+  /* turret, gun, missile tube, smoke launchers */
+  fmesh(new THREE.CylinderGeometry(0.78, 1.02, 0.48, 8), OL, 0.4, 0.05, 2.1, 0, g);
+  fmesh(new THREE.CylinderGeometry(0.26, 0.26, 0.12, 10), OD, 0.4, -0.2, 2.4, -0.3, g);
+  fmesh(new THREE.BoxGeometry(0.28, 0.22, 0.26), OD, 0.38, 0.35, 2.43, 0.35, g);
+  const gun = fmesh(alongX(new THREE.CylinderGeometry(0.045, 0.05, 2.9, 8)), OD, 0.3, 1.75, 2.2, 0.1, g); gun.rotation.z = 0.05;
+  fmesh(alongX(new THREE.CylinderGeometry(0.075, 0.075, 0.25, 8)), OD, 0.3, 3.18, 2.27, 0.1, g);
+  fmesh(new THREE.BoxGeometry(0.12, 0.2, 0.08), OD, 0.36, 0.0, 2.45, -0.36, g);
+  fmesh(alongX(new THREE.CylinderGeometry(0.085, 0.085, 1.25, 10)), OD, 0.36, 0.05, 2.6, -0.36, g);
+  [1, -1].forEach(s => [0, 1, 2].forEach(k => fmesh(new THREE.CylinderGeometry(0.05, 0.05, 0.22, 8), OD, 0.36, -0.35 + k * 0.18, 2.15, s * 0.9, g)));
+  /* running gear, both sides */
+  const trackShape = new THREE.Shape([new THREE.Vector2(-0.03, -0.19), new THREE.Vector2(0.03, -0.19), new THREE.Vector2(0.03, 0.19), new THREE.Vector2(-0.03, 0.19)]);
+  const trackPath = new THREE.CatmullRomCurve3([V(-3.1, 0.16, 0), V(-2.4, 0.05, 0), V(2.2, 0.05, 0), V(2.95, 0.33, 0), V(3.22, 0.7, 0), V(2.95, 0.98, 0),
+    V(1.5, 1.04, 0), V(-1.5, 1.04, 0), V(-3.0, 0.92, 0), V(-3.42, 0.55, 0)], true);
+  const trackGeo = new THREE.ExtrudeGeometry(trackShape, { steps: 140, extrudePath: trackPath, bevelEnabled: false });
+  [1, -1].forEach(s => {
+    const zc = s * 1.33;
+    fmesh(trackGeo, TR, 0.6, 0, 0, zc, g);
+    for (let i = 0; i < 6; i++) {
+      const xw = 2.2 - i * 0.93;
+      fmesh(across(new THREE.CylinderGeometry(0.37, 0.37, 0.2, 16)), 0x3b3d2c, 0.6, xw, 0.42, zc, g);
+      fmesh(across(new THREE.CylinderGeometry(0.13, 0.13, 0.24, 10)), TR, 0.68, xw, 0.42, zc, g);
+    }
+    fmesh(across(new THREE.CylinderGeometry(0.3, 0.3, 0.22, 10)), TR, 0.66, 2.95, 0.68, zc, g);
+    fmesh(across(new THREE.CylinderGeometry(0.32, 0.32, 0.22, 12)), TR, 0.58, -3.12, 0.55, zc, g);
+    [1.5, 0.0, -1.5].forEach(rx => fmesh(across(new THREE.CylinderGeometry(0.1, 0.1, 0.18, 8)), TR, 0.6, rx, 0.93, zc, g));
+    for (let k = 0; k < 4; k++) fmesh(new THREE.BoxGeometry(1.42, 0.3, 0.04), OL, 0.44, 1.95 - k * 1.5, 1.13, s * 1.55, g);
+  });
   return g;
 }
 function tank(x) {
