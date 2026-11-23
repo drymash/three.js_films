@@ -1,0 +1,238 @@
+<title>Вміння № 5 · Тримати зв'язок</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;600&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: a true-geometry cross-section of the Earth's curve (vertical scale exaggerated), ground station on the
+   left, the drone climbing on the right; the line of sight reaches further as it climbs. Single dark look. */
+:root{
+  --bg:#0b0f16;
+  --fg:#eef1f4;
+  --muted:#8e9aab;
+  --holo:#5aa8ff;
+  --accent:#ff7a3d;
+  --display:'Oswald','Arial Narrow',Arial,sans-serif;
+  --mono:'JetBrains Mono',ui-monospace,Menlo,Consolas,monospace;
+  color-scheme:dark;
+}
+[hidden]{display:none!important}
+html,body{height:100%;margin:0;background:var(--bg);color:var(--fg);overflow:hidden}
+#diagram{position:fixed;inset:0;width:100%;height:100%;display:block}
+#grain{position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-index:4;opacity:.07;mix-blend-mode:screen;image-rendering:pixelated}
+#vig{position:fixed;inset:0;pointer-events:none;z-index:4;background:radial-gradient(ellipse 80% 70% at 50% 50%,transparent 45%,rgba(0,0,0,.55) 100%)}
+#fade{position:fixed;inset:0;background:#000;pointer-events:none;z-index:9}
+.ui{position:fixed;z-index:5;pointer-events:none}
+.corners{inset:2.2vmin}
+.corners i{position:absolute;width:3.2vmin;height:3.2vmin;border:0 solid rgba(255,255,255,.35)}
+.corners i:nth-child(1){left:0;top:0;border-left-width:1.5px;border-top-width:1.5px}
+.corners i:nth-child(2){right:0;top:0;border-right-width:1.5px;border-top-width:1.5px}
+.corners i:nth-child(3){left:0;bottom:0;border-left-width:1.5px;border-bottom-width:1.5px}
+.corners i:nth-child(4){right:0;bottom:0;border-right-width:1.5px;border-bottom-width:1.5px}
+#chapter{left:max(5vmin,env(safe-area-inset-left,0px));top:6.5vh;font:600 clamp(10px,1.9vmin,16px)/1.3 var(--mono);letter-spacing:.14em;text-transform:uppercase}
+#chapter .bar{margin-top:8px;width:22vmin;height:2px;background:rgba(255,255,255,.18)}
+#chapter .bar b{display:block;height:100%;width:0;background:var(--accent)}
+#chapter .num{color:var(--accent)}
+#mark{right:max(5vmin,env(safe-area-inset-right,0px));top:6.5vh;font:600 clamp(10px,1.9vmin,16px)/1.3 var(--mono);letter-spacing:.14em;color:var(--muted);text-align:right}
+#controls{position:fixed;left:0;right:0;bottom:0;z-index:10;display:flex;align-items:center;gap:12px;
+  padding-block:10px calc(10px + env(safe-area-inset-bottom,0px));
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));
+  font:400 12px/1 var(--mono);color:var(--muted);opacity:.35;transition:opacity .25s}
+#controls:hover,#controls:focus-within{opacity:1}
+#controls button{all:unset;cursor:pointer;width:30px;height:30px;display:grid;place-items:center;border-radius:50%;color:var(--fg);background:rgba(255,255,255,.08)}
+#controls button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+#controls svg{width:14px;height:14px;fill:currentColor}
+#scrub{flex:1;min-width:0;accent-color:var(--accent)}
+#time{font-variant-numeric:tabular-nums;min-width:9ch;text-align:right;color:var(--fg)}
+</style>
+
+<svg id="diagram" viewBox="0 0 900 1600" preserveAspectRatio="xMidYMid slice" aria-label="Схема: дальність прямої видимості росте з висотою дрона">
+  <defs>
+    <pattern id="grid" width="50" height="50" patternUnits="userSpaceOnUse"><path d="M50 0H0V50" fill="none" stroke="#5aa8ff" stroke-opacity=".07"/></pattern>
+    <pattern id="hatch" width="12" height="12" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><line x1="0" y1="0" x2="0" y2="12" stroke="#8e9aab" stroke-opacity=".35" stroke-width="2"/></pattern>
+    <linearGradient id="earth" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#16314f"/><stop offset=".25" stop-color="#0f1c2c"/><stop offset="1" stop-color="#0b0f16"/></linearGradient>
+    <radialGradient id="glow"><stop offset="0" stop-color="#ff7a3d" stop-opacity=".55"/><stop offset="1" stop-color="#ff7a3d" stop-opacity="0"/></radialGradient>
+  </defs>
+  <rect width="900" height="1600" fill="#0b0f16"/>
+  <rect width="900" height="1600" fill="url(#grid)"/>
+
+  <g id="titleG" opacity="0">
+    <text x="450" y="300" text-anchor="middle" fill="#ff7a3d" font-family="JetBrains Mono,monospace" font-weight="600" font-size="24" letter-spacing="7">ВМІННЯ № 5</text>
+    <text x="450" y="380" text-anchor="middle" fill="#eef1f4" font-family="Oswald,Arial Narrow,sans-serif" font-weight="600" font-size="76" letter-spacing="3">ТРИМАТИ ЗВ'ЯЗОК</text>
+  </g>
+
+  <!-- readouts -->
+  <g id="readG" opacity="0" font-family="JetBrains Mono,monospace">
+    <text x="70" y="470" fill="#8e9aab" font-size="20" font-weight="600" letter-spacing="4">ВИСОТА ДРОНА</text>
+    <text id="altV" x="70" y="540" fill="#eef1f4" font-family="Oswald,Arial Narrow,sans-serif" font-size="72" font-weight="600">0,5 км</text>
+    <text x="830" y="470" text-anchor="end" fill="#8e9aab" font-size="20" font-weight="600" letter-spacing="4">ЗВ'ЯЗОК ДО</text>
+    <text id="rngV" x="830" y="540" text-anchor="end" fill="#ff7a3d" font-family="Oswald,Arial Narrow,sans-serif" font-size="72" font-weight="600">~100 км</text>
+  </g>
+
+  <!-- the Earth -->
+  <path id="shadow" fill="url(#hatch)" opacity="0"/>
+  <path id="earthFill" fill="url(#earth)"/>
+  <path id="earthLine" fill="none" stroke="#5aa8ff" stroke-width="2.5" stroke-opacity=".9"/>
+  <g id="ticks" font-family="JetBrains Mono,monospace" font-size="18" fill="#8e9aab"></g>
+  <text id="horizonLbl" fill="#8e9aab" font-family="JetBrains Mono,monospace" font-size="18" font-weight="600" letter-spacing="3" opacity="0">ЗА ОБРІЄМ</text>
+
+  <!-- ground station -->
+  <g id="gcs">
+    <rect x="52" y="884" width="44" height="16" fill="none" stroke="#bfd4ea" stroke-width="2"/>
+    <line x1="88" y1="884" x2="88" y2="848" stroke="#bfd4ea" stroke-width="2"/>
+    <path d="M78 850 Q88 834 98 850" fill="none" stroke="#bfd4ea" stroke-width="2"/>
+    <text x="40" y="940" fill="#eef1f4" font-family="JetBrains Mono,monospace" font-size="18" font-weight="600" letter-spacing="2">■ ПУНКТ КЕРУВАННЯ</text>
+  </g>
+
+  <!-- link, altitude leg, distance bracket, packets -->
+  <line id="link" stroke="#ff9a66" stroke-width="3" stroke-dasharray="14 9"/>
+  <line id="leg" stroke="#8e9aab" stroke-width="1.5" stroke-dasharray="5 6"/>
+  <text id="legLbl" fill="#8e9aab" font-family="JetBrains Mono,monospace" font-size="18" font-weight="600"></text>
+  <g id="bracket" opacity="0">
+    <line id="brL" stroke="#ff7a3d" stroke-width="2"/>
+    <line id="brA" stroke="#ff7a3d" stroke-width="2"/><line id="brB" stroke="#ff7a3d" stroke-width="2"/>
+    <text id="brT" text-anchor="middle" fill="#ff7a3d" font-family="JetBrains Mono,monospace" font-size="20" font-weight="600" letter-spacing="2"></text>
+  </g>
+  <g id="packets"></g>
+
+  <!-- the drone, side view -->
+  <g id="drone">
+    <circle r="46" fill="url(#glow)"/>
+    <path d="M-34 0 Q-30 -7 -4 -7 L20 -6 Q34 -4 36 0 Q34 4 20 5 L-4 6 Q-30 7 -34 0 Z" fill="none" stroke="#9fd0ff" stroke-width="2.4"/>
+    <line x1="-8" y1="-8" x2="8" y2="-8" stroke="#9fd0ff" stroke-width="3"/>
+    <path d="M-34 -2 L-44 -14 M-34 2 L-44 12" stroke="#9fd0ff" stroke-width="2"/>
+    <circle cx="22" cy="8" r="4" fill="none" stroke="#9fd0ff" stroke-width="2"/>
+    <text x="-40" y="-30" fill="#eef1f4" font-family="JetBrains Mono,monospace" font-size="18" font-weight="600" letter-spacing="2">■ TB2</text>
+  </g>
+
+  <text id="note" x="450" y="1330" text-anchor="middle" fill="#8e9aab" font-family="JetBrains Mono,monospace" font-size="17" opacity="0">пряма видимість · рельєф не враховано · вертикаль збільшено</text>
+</svg>
+<canvas id="grain" width="225" height="400"></canvas>
+<div id="vig"></div>
+<div class="ui corners"><i></i><i></i><i></i><i></i></div>
+<div class="ui" id="chapter"><span class="num">07 / 09</span> · ВМІННЯ № 5<div class="bar"><b id="prog"></b></div></div>
+<div class="ui" id="mark">BAYRAKTAR TB2</div>
+<div id="fade"></div>
+
+<div id="controls">
+  <button id="play" type="button" aria-label="Пауза">
+    <svg id="icoPause" viewBox="0 0 16 16"><rect x="3" y="2" width="3.5" height="12"/><rect x="9.5" y="2" width="3.5" height="12"/></svg>
+    <svg id="icoPlay" viewBox="0 0 16 16" hidden><path d="M4 2l10 6-10 6z"/></svg>
+  </button>
+  <input id="scrub" type="range" min="0" max="10" step="0.01" value="0" aria-label="Час сцени">
+  <span id="time">00.0 / 10.0</span>
+</div>
+
+<script>
+(() => {
+const DUR = 10;
+const $ = s => document.querySelector(s);
+const clamp01 = x => Math.min(1, Math.max(0, x));
+const smooth = (a, b, x) => { const t = clamp01((x - a) / (b - a)); return t * t * (3 - 2 * t); };
+const lerp = (a, b, t) => a + (b - a) * t;
+const win = (a, b, c, d, t) => smooth(a, b, t) * (1 - smooth(c, d, t));
+
+/* voice-over this scene is paced to (no captions on screen; retime after the recording)
+   0.3–3.9  І весь цей час він на зв'язку з землею — за сотні кілометрів.
+   4.4–8.6  Висота тут — союзник: чим вище, тим далі бачить антена.
+   Geometry: radio line of sight with standard refraction, effective Earth radius 8 495 km, so the horizon distance
+   is d ≈ 4.12·(√h1 + √h2) km with heights in metres. Ground antenna h1 = 10 m. At h2 = 5 km that is ≈ 304 km,
+   in line with Baykar's "line of sight under 300 km". */
+const R_EFF = 8495, H1 = 0.01;                 // km
+const horizon = h => 4.12 * (Math.sqrt(H1 * 1000) + Math.sqrt(h * 1000));   // km
+const X0 = 70, XS = 780 / 350, BASE = 900, K = 40;   // px per km horizontally / vertically
+const drop = d => d * d / (2 * R_EFF);
+const X = d => X0 + d * XS;
+const Y = (d, h) => BASE + (drop(d) - h) * K;
+
+/* static: the Earth's curve and distance ticks */
+{
+  let line = '', fill = '';
+  for (let d = -40; d <= 400; d += 4) { const p = `${X(d).toFixed(1)} ${Y(d, 0).toFixed(1)}`; line += (d === -40 ? 'M' : 'L') + p; }
+  fill = line + 'L 1100 1700 L -100 1700 Z';
+  $('#earthLine').setAttribute('d', line); $('#earthFill').setAttribute('d', fill);
+  const g = $('#ticks');
+  [0, 100, 200, 300].forEach(d => {
+    const x = X(d), y = Y(d, 0);
+    g.insertAdjacentHTML('beforeend', `<line x1="${x}" y1="${y}" x2="${x}" y2="${y + 14}" stroke="#5aa8ff" stroke-opacity=".8" stroke-width="2"/>` +
+      `<text x="${x}" y="${y + 40}" text-anchor="middle">${d} км</text>`);
+  });
+}
+const packets = [];
+for (let i = 0; i < 6; i++) { const c = document.createElementNS('http://www.w3.org/2000/svg', 'circle'); c.setAttribute('r', '5'); c.setAttribute('fill', i % 2 ? '#9fd0ff' : '#ff9a66'); $('#packets').appendChild(c); packets.push(c); }
+
+/* grain */
+const gctx = $('#grain').getContext('2d'), gimg = gctx.createImageData(225, 400);
+function grain(t) {
+  let s = Math.floor(t * 30) * 9301 + 49297;
+  for (let i = 0; i < gimg.data.length; i += 4) { s = (s * 9301 + 49297) % 233280; const v = s / 233280 * 255; gimg.data[i] = gimg.data[i + 1] = gimg.data[i + 2] = v; gimg.data[i + 3] = 255; }
+  gctx.putImageData(gimg, 0, 0);
+}
+const fmt = (n, d) => n.toFixed(d).replace('.', ',');
+
+function render(t) {
+  /* altitude climbs, the reach follows */
+  const h = lerp(0.5, 5.0, smooth(1.2, 8.0, t));
+  const reach = horizon(h);
+  const dx = X(reach), dy = Y(reach, h);
+  const ax = 88, ay = 848;
+  $('#drone').setAttribute('transform', `translate(${dx.toFixed(1)} ${dy.toFixed(1)}) rotate(${(-Math.atan2(drop(reach + 1) - drop(reach), 1) * 0).toFixed(2)})`);
+  const linkA = smooth(0.6, 1.2, t);
+  const L = $('#link');
+  L.setAttribute('x1', ax); L.setAttribute('y1', ay); L.setAttribute('x2', dx); L.setAttribute('y2', dy);
+  L.setAttribute('stroke-dashoffset', (-t * 40).toFixed(1)); L.style.opacity = linkA;
+  /* altitude leg down to the surface under the drone */
+  const sy = Y(reach, 0);
+  const leg = $('#leg'); leg.setAttribute('x1', dx); leg.setAttribute('x2', dx); leg.setAttribute('y1', dy + 12); leg.setAttribute('y2', sy); leg.style.opacity = linkA;
+  const ll = $('#legLbl'); ll.setAttribute('x', dx - 14); ll.setAttribute('y', (dy + sy) / 2 + 6); ll.setAttribute('text-anchor', 'end'); ll.textContent = fmt(h, 1) + ' км'; ll.style.opacity = linkA;
+  /* beyond the horizon: the area under the extended line of sight */
+  const slope = (dy - ay) / (dx - ax);
+  let sh = `M ${dx} ${sy}`;
+  for (let d = reach; d <= 400; d += 4) sh += ` L ${X(d)} ${Math.min(Y(d, 0), dy + slope * (X(d) - dx))}`;
+  for (let d = 400; d >= reach; d -= 4) sh += ` L ${X(d)} ${Y(d, 0)}`;
+  $('#shadow').setAttribute('d', sh + ' Z'); $('#shadow').style.opacity = 0.9 * smooth(4.6, 5.4, t);
+  const hl = $('#horizonLbl'); hl.setAttribute('text-anchor', 'end'); hl.setAttribute('x', 850); hl.setAttribute('y', dy + 70); hl.style.opacity = smooth(4.8, 5.4, t);
+  /* bracket under the Earth line */
+  const by = Y(reach, 0) + 90;
+  $('#brL').setAttribute('x1', ax); $('#brL').setAttribute('x2', dx); $('#brL').setAttribute('y1', by); $('#brL').setAttribute('y2', by);
+  $('#brA').setAttribute('x1', ax); $('#brA').setAttribute('x2', ax); $('#brA').setAttribute('y1', by - 10); $('#brA').setAttribute('y2', by + 10);
+  $('#brB').setAttribute('x1', dx); $('#brB').setAttribute('x2', dx); $('#brB').setAttribute('y1', by - 10); $('#brB').setAttribute('y2', by + 10);
+  const shown = '~' + (Math.round(reach / 10) * 10) + ' км';
+  $('#brT').setAttribute('x', (ax + dx) / 2); $('#brT').setAttribute('y', by + 36); $('#brT').textContent = shown;
+  $('#bracket').style.opacity = smooth(1.6, 2.2, t);
+  /* readouts */
+  $('#altV').textContent = fmt(h, 1) + ' км'; $('#rngV').textContent = shown;
+  $('#readG').style.opacity = smooth(1.3, 1.9, t);
+  $('#titleG').style.opacity = win(0.1, 0.4, 1.1, 1.5, t);
+  $('#note').style.opacity = 0.9 * smooth(5.2, 5.8, t);
+  /* data packets both ways along the link */
+  packets.forEach((c, i) => {
+    const dir = i % 2, ph = ((t * 0.45 + i / 6) % 1), u = dir ? 1 - ph : ph;
+    c.setAttribute('cx', lerp(ax, dx, u)); c.setAttribute('cy', lerp(ay, dy, u));
+    c.style.opacity = linkA * win(0, 0.08, 0.92, 1, ph);
+  });
+  $('#prog').style.width = (100 * t / DUR) + '%';
+  $('#fade').style.opacity = 1 - smooth(0, 0.3, t);
+  grain(t);
+}
+
+/* transport and capture contract */
+const scrub = $('#scrub'), timeEl = $('#time'), playBtn = $('#play');
+let t = 0, playing = !window.matchMedia('(prefers-reduced-motion: reduce)').matches, last = performance.now(), scrubbing = false;
+function setPlaying(p) { playing = p; $('#icoPause').hidden = !p; $('#icoPlay').hidden = p; playBtn.setAttribute('aria-label', p ? 'Пауза' : 'Відтворити'); }
+setPlaying(playing); if (!playing) t = 8.5;
+playBtn.addEventListener('click', () => setPlaying(!playing));
+scrub.addEventListener('input', () => { scrubbing = true; t = parseFloat(scrub.value); });
+scrub.addEventListener('change', () => { scrubbing = false; });
+function loop(now) {
+  const dt = Math.min(0.05, (now - last) / 1000); last = now;
+  if (playing && !scrubbing) { t += dt; if (t >= DUR) t -= DUR; }
+  render(t);
+  if (!scrubbing) scrub.value = t.toFixed(2);
+  timeEl.textContent = t.toFixed(1).padStart(4, '0') + ' / ' + DUR.toFixed(1);
+  requestAnimationFrame(loop);
+}
+window.DURATION = DUR; window.FPS = 30;
+window.seek = s => { t = s; render(s); };
+if (new URLSearchParams(location.search).has('render')) { $('#controls').hidden = true; render(0); }
+else requestAnimationFrame(loop);
+})();
+</script>
