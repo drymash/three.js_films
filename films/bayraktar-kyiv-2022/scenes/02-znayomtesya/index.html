@@ -1,0 +1,526 @@
+<title>Знайомтеся · Небо дивиться</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;600&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: the blueprint book opens in the dark studio, the hologram rises off the drawing at real scale, then
+   dimensions, a weight comparison with a small car, a turntable beat, and the list of five skills. Single dark look. */
+:root{
+  --bg:#0b0f16;
+  --fg:#eef1f4;
+  --muted:#8e9aab;
+  --accent:#ff7a3d;
+  --display:'Oswald','Arial Narrow',Arial,sans-serif;
+  --mono:'JetBrains Mono',ui-monospace,Menlo,Consolas,monospace;
+  color-scheme:dark;
+}
+[hidden]{display:none!important}
+html,body{height:100%;margin:0;background:var(--bg);color:var(--fg);overflow:hidden}
+#stage{position:fixed;inset:0}
+#stage canvas{display:block;width:100%;height:100%}
+#fade{position:fixed;inset:0;background:#000;pointer-events:none;z-index:9}
+.ui{position:fixed;z-index:5;pointer-events:none}
+.corners{inset:2.2vmin}
+.corners i{position:absolute;width:3.2vmin;height:3.2vmin;border:0 solid rgba(255,255,255,.35)}
+.corners i:nth-child(1){left:0;top:0;border-left-width:1.5px;border-top-width:1.5px}
+.corners i:nth-child(2){right:0;top:0;border-right-width:1.5px;border-top-width:1.5px}
+.corners i:nth-child(3){left:0;bottom:0;border-left-width:1.5px;border-bottom-width:1.5px}
+.corners i:nth-child(4){right:0;bottom:0;border-right-width:1.5px;border-bottom-width:1.5px}
+#chapter{left:max(5vmin,env(safe-area-inset-left,0px));top:6.5vh;font:600 clamp(10px,1.9vmin,16px)/1.3 var(--mono);letter-spacing:.14em;text-transform:uppercase}
+#chapter .bar{margin-top:8px;width:22vmin;height:2px;background:rgba(255,255,255,.18)}
+#chapter .bar b{display:block;height:100%;width:0;background:var(--accent)}
+#chapter .num{color:var(--accent)}
+#mark{right:max(5vmin,env(safe-area-inset-right,0px));top:6.5vh;font:600 clamp(10px,1.9vmin,16px)/1.3 var(--mono);letter-spacing:.14em;color:var(--muted);text-align:right}
+#rubric{left:0;right:0;top:15vh;text-align:center;opacity:0}
+#rubric .eyebrow{font:600 clamp(12px,2.4vmin,22px)/1 var(--mono);letter-spacing:.3em;color:var(--accent)}
+#rubric h1{margin:1.2vh 0 0;font:600 clamp(40px,10vmin,120px)/.95 var(--display);letter-spacing:.05em;text-transform:uppercase}
+#callouts{inset:0}
+#callouts svg{position:absolute;inset:0;width:100%;height:100%;overflow:visible}
+#callouts line{stroke:var(--accent);stroke-width:1.5;stroke-opacity:.9}
+.co{position:absolute;display:flex;align-items:center;gap:8px;transform:translate(-6px,-50%);opacity:0;white-space:nowrap;
+  font:600 clamp(12px,2.5vmin,24px)/1.2 var(--mono);letter-spacing:.04em;color:#fff}
+.co.left{flex-direction:row-reverse;transform:translate(calc(-100% + 6px),-50%)}
+.co i{width:11px;height:11px;border-radius:50%;background:var(--accent);box-shadow:0 0 0 4px rgba(255,122,61,.28);flex:none}
+.co span{background:rgba(8,14,26,.82);padding:6px 11px;border:1px solid rgba(255,255,255,.2);border-radius:3px}
+.co small{display:block;font-weight:400;color:var(--muted);font-size:.74em;margin-top:2px}
+.dim{position:absolute;transform:translate(-50%,-50%);opacity:0;font:600 clamp(22px,5.4vmin,58px)/1 var(--display);letter-spacing:.04em;color:#fff;
+  background:rgba(8,14,26,.7);padding:4px 12px;border:1px solid rgba(255,122,61,.6)}
+#weights{left:max(7vw,16px);right:max(7vw,16px);bottom:22vh;opacity:0;display:grid;gap:2vh;padding:2.2vmin 3vmin;background:rgba(8,14,26,.84);border:1px solid rgba(255,255,255,.18);font:600 clamp(12px,2.5vmin,22px)/1.2 var(--mono);letter-spacing:.08em}
+#weights .row{display:grid;gap:8px}
+#weights .lab{display:flex;justify-content:space-between;gap:12px}
+#weights .lab b{font:600 clamp(18px,4vmin,40px)/1 var(--display);letter-spacing:.03em}
+#weights .bar{height:clamp(10px,1.6vh,18px);background:rgba(255,255,255,.1)}
+#weights .bar i{display:block;height:100%;width:0}
+#weights .tb i{background:var(--accent)}
+#weights .car i{background:#bfd4ea}
+#weights .tb .lab b{color:var(--accent)}
+#weights small{color:var(--muted);font-size:.8em;letter-spacing:.06em}
+#skills{left:max(7vw,16px);right:max(7vw,16px);bottom:19vh;display:grid;gap:1.1vh;font:600 clamp(14px,3vmin,30px)/1.15 var(--display);letter-spacing:.06em;text-transform:uppercase}
+#skills div{opacity:0;display:flex;gap:2.4vmin;align-items:baseline;padding:1vh 2vmin;background:rgba(8,14,26,.72);border-left:3px solid var(--accent)}
+#skills div b{font:600 clamp(12px,2.4vmin,22px)/1 var(--mono);color:var(--accent);min-width:2.6ch}
+#controls{position:fixed;left:0;right:0;bottom:0;z-index:10;display:flex;align-items:center;gap:12px;
+  padding-block:10px calc(10px + env(safe-area-inset-bottom,0px));
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));
+  font:400 12px/1 var(--mono);color:var(--muted);opacity:.35;transition:opacity .25s}
+#controls:hover,#controls:focus-within{opacity:1}
+#controls button{all:unset;cursor:pointer;width:30px;height:30px;display:grid;place-items:center;border-radius:50%;color:var(--fg);background:rgba(255,255,255,.08)}
+#controls button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+#controls svg{width:14px;height:14px;fill:currentColor}
+#scrub{flex:1;min-width:0;accent-color:var(--accent)}
+#time{font-variant-numeric:tabular-nums;min-width:9ch;text-align:right;color:var(--fg)}
+</style>
+
+<div id="stage"></div>
+<div class="ui corners"><i></i><i></i><i></i><i></i></div>
+<div class="ui" id="chapter"><span class="num">02 / 09</span> · ЗНАЙОМТЕСЯ<div class="bar"><b id="prog"></b></div></div>
+<div class="ui" id="mark">BAYRAKTAR TB2</div>
+<div class="ui" id="rubric"><div class="eyebrow">02 · ЗНАЙОМТЕСЯ</div><h1>Що ми маємо?</h1></div>
+<div class="ui" id="callouts"></div>
+<div class="ui" id="weights">
+  <div class="row tb"><div class="lab"><span>■ TB2 · на зльоті</span><b>700 кг</b></div><div class="bar"><i id="wTb"></i></div></div>
+  <div class="row car"><div class="lab"><span>■ МАЛОЛІТРАЖКА</span><b>~1 000 кг</b></div><div class="bar"><i id="wCar"></i></div></div>
+  <small>максимальна злітна маса TB2 — дані Baykar</small>
+</div>
+<div class="ui" id="skills">
+  <div><b>01</b>Не сідати</div><div><b>02</b>Не бути поміченим</div><div><b>03</b>Бачити</div><div><b>04</b>Літати самому</div><div><b>05</b>Тримати зв'язок</div>
+</div>
+<div id="fade"></div>
+
+<div id="controls">
+  <button id="play" type="button" aria-label="Пауза">
+    <svg id="icoPause" viewBox="0 0 16 16"><rect x="3" y="2" width="3.5" height="12"/><rect x="9.5" y="2" width="3.5" height="12"/></svg>
+    <svg id="icoPlay" viewBox="0 0 16 16" hidden><path d="M4 2l10 6-10 6z"/></svg>
+  </button>
+  <input id="scrub" type="range" min="0" max="19" step="0.01" value="0" aria-label="Час сцени">
+  <span id="time">00.0 / 19.0</span>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/shaders/CopyShader.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/shaders/LuminosityHighPassShader.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/EffectComposer.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/RenderPass.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/ShaderPass.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/UnrealBloomPass.js"></script>
+<script>
+(() => {
+const DUR = 19;
+const $ = s => document.querySelector(s);
+const clamp01 = x => Math.min(1, Math.max(0, x));
+const smooth = (a, b, x) => { const t = clamp01((x - a) / (b - a)); return t * t * (3 - 2 * t); };
+const lerp = (a, b, t) => a + (b - a) * t;
+const win = (a, b, c, d, t) => smooth(a, b, t) * (1 - smooth(c, d, t));
+const V = (x, y, z) => new THREE.Vector3(x, y, z);
+
+/* voice-over this scene is paced to (no captions on screen; retime after the recording)
+   0.4–2.6   Отже. Що ми маємо?
+   6.0–9.4   Дванадцять метрів крила. Шість із гаком — довжини.
+   9.6–12.8  Сімсот кілограмів на зльоті — легший за малолітражку.
+   13.0–15.6 На вигляд — планер, якому приробили гвинт ззаду.
+   15.8–18.8 Але вміє він речі, яких на початку великої війни не вмів ніхто інший у нашому небі. Розберімо по черзі. */
+
+/* ---------- renderer & studio ---------- */
+const renderer = new THREE.WebGLRenderer({ antialias: true });
+renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+renderer.setSize(innerWidth, innerHeight);
+$('#stage').appendChild(renderer.domElement);
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x0b0f16);
+const camera = new THREE.PerspectiveCamera(40, innerWidth / innerHeight, 0.1, 400);
+function fitFov(f) {
+  const a = innerWidth / innerHeight;
+  if (a >= 1) return f;
+  const tanH = Math.tan(f * Math.PI / 360) * (16 / 9) * 0.6;
+  return 2 * Math.atan(tanH / a) * 180 / Math.PI;
+}
+const FLOOR_Y = -1.16;
+const floor = new THREE.Mesh(new THREE.PlaneGeometry(200, 200), new THREE.ShaderMaterial({
+  depthWrite: false, extensions: { derivatives: true },
+  vertexShader: `varying vec3 vW; void main(){ vec4 w = modelMatrix * vec4(position,1.0); vW = w.xyz; gl_Position = projectionMatrix * viewMatrix * w; }`,
+  fragmentShader: `varying vec3 vW;
+    float line(float c, float w){ float f = abs(fract(c - 0.5) - 0.5) / fwidth(c); return 1.0 - min(f / w, 1.0); }
+    void main(){ float r = length(vW.xz); float pool = exp(-r * r / 260.0);
+      float g = max(line(vW.x, 1.0), line(vW.z, 1.0)) * 0.10 + max(line(vW.x / 5.0, 1.2), line(vW.z / 5.0, 1.2)) * 0.16;
+      vec3 c = vec3(0.043, 0.059, 0.086) + vec3(0.05, 0.08, 0.12) * pool + vec3(0.25, 0.5, 0.9) * g * (0.25 + pool);
+      gl_FragColor = vec4(c, 1.0); }`
+}));
+floor.rotation.x = -Math.PI / 2; floor.position.y = FLOOR_Y - 0.12; scene.add(floor);
+scene.add(new THREE.HemisphereLight(0xc8d6ff, 0x10141c, 0.3));
+const key = new THREE.DirectionalLight(0xfff1e0, 0.55); key.position.set(-14, 30, 18); scene.add(key);
+const rimL = new THREE.DirectionalLight(0x8fb0ff, 0.45); rimL.position.set(16, 8, -20); scene.add(rimL);
+
+/* ---------- the blueprint book (from the first film), scaled so its drawing matches the drone 1:1 ---------- */
+const bookRoot = new THREE.Group(); scene.add(bookRoot);
+const BOOK_K = 1 / 0.62;
+bookRoot.scale.setScalar(BOOK_K);
+const bookScene = bookRoot;
+function canvasTex(w, h, draw) {
+  const c = document.createElement('canvas'); c.width = w; c.height = h;
+  const tex = new THREE.CanvasTexture(c);
+  tex.anisotropy = renderer.capabilities.getMaxAnisotropy();
+  const redraw = () => { const g = c.getContext('2d'); g.textAlign = 'left'; draw(g, w, h); tex.needsUpdate = true; };
+  redraw(); return { tex, redraw };
+}
+
+
+const PW = 1000, PH = 1350;
+const BLUE = '#1f4fae', SOFT = 'rgba(255,255,255,0.66)', ORANGE = '#ff7a3d';
+const F_DISP = '"Oswald","Arial Narrow",Arial,sans-serif', F_MONO = '"JetBrains Mono",Menlo,monospace', F_BODY = 'Arial,Helvetica,sans-serif';
+function blueprint(g, bg) {
+  g.fillStyle = bg || BLUE; g.fillRect(0, 0, PW, PH);
+  g.lineWidth = 1;
+  for (let x = 0; x <= PW; x += 25) { g.strokeStyle = x % 125 === 0 ? 'rgba(255,255,255,0.13)' : 'rgba(255,255,255,0.05)'; g.beginPath(); g.moveTo(x + 0.5, 0); g.lineTo(x + 0.5, PH); g.stroke(); }
+  for (let y = 0; y <= PH; y += 25) { g.strokeStyle = y % 125 === 0 ? 'rgba(255,255,255,0.13)' : 'rgba(255,255,255,0.05)'; g.beginPath(); g.moveTo(0, y + 0.5); g.lineTo(PW, y + 0.5); g.stroke(); }
+  g.strokeStyle = 'rgba(255,255,255,0.4)'; g.lineWidth = 2; g.strokeRect(50, 50, PW - 100, PH - 100);
+}
+function drawLeft(g) {
+  blueprint(g);
+  g.fillStyle = ORANGE; g.font = `600 24px ${F_MONO}`; g.fillText('ДОДАТОК А · ТЕХНІЧНИЙ ОПИС', 90, 150);
+  g.fillStyle = '#fff'; g.font = `600 100px ${F_DISP}`; g.fillText('BAYRAKTAR TB2', 86, 262);
+  g.fillStyle = SOFT; g.font = `400 30px ${F_BODY}`;
+  ['Безпілотний літальний апарат класу MALE:', 'середня висота, велика тривалість польоту.', 'Двобалкова схема, обернене V-подібне', 'оперення, штовхальний гвинт.']
+    .forEach((l, i) => g.fillText(l, 90, 335 + i * 42));
+  [['Розмах крила', '12 м'], ['Довжина', '6,4 м'], ['Макс. злітна маса', '700 кг'], ['Крейсерська швидкість', '130 км/год'], ['Робоча висота', '~5 000 м'], ['Тривалість польоту', '20+ год, рекорд 27']]
+    .forEach(([k, v], i) => {
+      const y = 575 + i * 62;
+      g.strokeStyle = 'rgba(255,255,255,0.25)'; g.lineWidth = 1.5; g.beginPath(); g.moveTo(90, y + 20); g.lineTo(910, y + 20); g.stroke();
+      g.textAlign = 'left'; g.fillStyle = SOFT; g.font = `400 28px ${F_BODY}`; g.fillText(k, 90, y);
+      g.textAlign = 'right'; g.fillStyle = '#fff'; g.font = `600 28px ${F_MONO}`; g.fillText(v, 910, y);
+    });
+  g.textAlign = 'left';
+  [['12', 'м', 'РОЗМАХ'], ['27', 'год', 'РЕКОРД'], ['700', 'кг', 'МАСА']].forEach(([n, u, l], i) => {
+    const x = 90 + i * 280, y = 1090;
+    g.fillStyle = '#fff'; g.font = `600 112px ${F_DISP}`; g.fillText(n, x, y);
+    const w = g.measureText(n).width;
+    g.fillStyle = SOFT; g.font = `400 30px ${F_MONO}`; g.fillText(u, x + w + 10, y);
+    g.fillStyle = ORANGE; g.font = `600 22px ${F_MONO}`; g.fillText(l, x, y + 44);
+  });
+  g.fillStyle = ORANGE; g.beginPath(); g.arc(96, 1225, 9, 0, 6.283); g.fill();
+  g.fillStyle = SOFT; g.font = `400 22px ${F_MONO}`; g.fillText('ЛИСТ 1 / 2', 120, 1233);
+  g.textAlign = 'right'; g.fillText('14', 910, 1233); g.textAlign = 'left';
+}
+function drawRight(g) {
+  blueprint(g);
+  g.fillStyle = ORANGE; g.font = `600 24px ${F_MONO}`; g.fillText('ЗАГАЛЬНИЙ ВИГЛЯД · ВИД ЗВЕРХУ', 90, 150);
+  g.strokeStyle = 'rgba(255,255,255,0.55)'; g.lineWidth = 2; g.strokeRect(560, 1130, 350, 120);
+  g.beginPath(); g.moveTo(560, 1172); g.lineTo(910, 1172); g.moveTo(735, 1172); g.lineTo(735, 1250); g.stroke();
+  g.fillStyle = '#fff'; g.font = `600 22px ${F_MONO}`; g.fillText('TB2 · ЗАГ. ВИГЛЯД', 575, 1160);
+  g.font = `400 22px ${F_MONO}`; g.fillText('М 1:20', 575, 1220); g.fillText('ЛИСТ 2', 750, 1220);
+  g.fillStyle = SOFT; g.font = `400 20px ${F_MONO}`; g.fillText('РОЗМІРИ В МЕТРАХ', 90, 1235);
+  g.textAlign = 'right'; g.fillText('15', 910, 110); g.textAlign = 'left';
+}
+function drawCover(g) {
+  blueprint(g, '#1a3f8e');
+  g.fillStyle = ORANGE; g.fillRect(90, 520, 120, 8);
+  g.fillStyle = '#fff'; g.font = `600 120px ${F_DISP}`; g.fillText('BAYRAKTAR', 86, 660); g.fillText('TB2', 86, 790);
+  g.fillStyle = SOFT; g.font = `400 26px ${F_MONO}`; g.fillText('ТЕХНІЧНИЙ АЛЬБОМ · КРЕСЛЕННЯ', 90, 860);
+  g.fillStyle = ORANGE; g.font = `600 22px ${F_MONO}`; g.fillText('ТОМ II', 90, 1230);
+}
+
+const pageW = 10, pageD = 13.5, blockH = 0.6;
+const leftT = canvasTex(PW, PH, drawLeft), rightT = canvasTex(PW, PH, drawRight), coverT = canvasTex(PW, PH, drawCover);
+coverT.tex.center.set(0.5, 0.5); coverT.tex.rotation = Math.PI;
+if (document.fonts && document.fonts.load) {
+  Promise.all([document.fonts.load(`600 100px ${F_DISP}`), document.fonts.load(`600 24px ${F_MONO}`), document.fonts.load(`400 24px ${F_MONO}`)])
+    .then(() => { leftT.redraw(); rightT.redraw(); coverT.redraw(); }).catch(() => {});
+}
+const pageEdgeMat = new THREE.MeshStandardMaterial({ color: 0xe2683a, roughness: 0.8 });
+const coverMat = new THREE.MeshStandardMaterial({ color: 0x1a3f8e, roughness: 0.6 });
+function pageBlock(tex) {
+  const mats = [pageEdgeMat, pageEdgeMat, new THREE.MeshStandardMaterial({ map: tex, roughness: 0.85 }), pageEdgeMat, pageEdgeMat, pageEdgeMat];
+  const m = new THREE.Mesh(new THREE.BoxGeometry(pageW, blockH, pageD), mats);
+  m.castShadow = m.receiveShadow = true; return m;
+}
+const book = new THREE.Group(); bookScene.add(book);
+const lb = pageBlock(leftT.tex); lb.position.set(-pageW / 2 - 0.03, blockH / 2, 0); book.add(lb);
+const coverGeo = new THREE.BoxGeometry(pageW + 0.3, 0.1, pageD + 0.4);
+const lc = new THREE.Mesh(coverGeo, coverMat); lc.position.set(-pageW / 2 - 0.12, -0.05, 0); lc.castShadow = lc.receiveShadow = true; book.add(lc);
+const hinge = new THREE.Group(); hinge.position.set(0, blockH, 0); book.add(hinge);
+const rb = pageBlock(rightT.tex); rb.position.set(pageW / 2 + 0.03, -blockH / 2, 0); hinge.add(rb);
+const rc = new THREE.Mesh(coverGeo, [coverMat, coverMat, coverMat, new THREE.MeshStandardMaterial({ map: coverT.tex, roughness: 0.6 }), coverMat, coverMat]);
+rc.position.set(pageW / 2 + 0.12, -blockH - 0.05, 0); rc.castShadow = rc.receiveShadow = true; hinge.add(rc);
+const spine = new THREE.Mesh(new THREE.CylinderGeometry(0.35, 0.35, pageD + 0.4, 16, 1, false, Math.PI / 2, Math.PI), coverMat);
+spine.rotation.x = Math.PI / 2; spine.position.set(0, 0.25, 0); book.add(spine);
+
+/* line drawing on the right page, in the drone's own coordinates (x = nose, z = span) */
+const S = 0.62, PC = new THREE.Vector3(pageW / 2, blockH + 0.012, -0.6);
+const mp = (x, z) => [PC.x + z * S, PC.y, PC.z - x * S];
+const segs = [];
+const poly = (pts, close) => { const n = close ? pts.length : pts.length - 1; for (let i = 0; i < n; i++) { const a = pts[i], b = pts[(i + 1) % pts.length]; segs.push(...mp(a[0], a[1]), ...mp(b[0], b[1])); } };
+const fus = [[-3.25, 0], [-3.2, 0.13], [-2.9, 0.2], [-2.0, 0.31], [-0.8, 0.4], [0.4, 0.44], [1.8, 0.44], [2.5, 0.4], [2.9, 0.31], [3.15, 0.17], [3.27, 0]];
+poly(fus.concat(fus.slice(0, -1).reverse().map(([x, z]) => [x, -z])), false);
+poly([[0.75, -6], [0.95, 0], [0.75, 6], [0.25, 6.05], [0, 0], [0.25, -6.05]], true);
+[1, -1].forEach(s => {
+  poly([[0.4, 1.3 * s], [-4.25, 1.3 * s]]);
+  poly([[-3.65, 1.3 * s], [-3.65, 2.17 * s], [-4.35, 2.17 * s], [-4.35, 1.3 * s]], true);
+});
+poly([[-3.38, -0.85], [-3.38, 0.85]]);
+poly([[-5.4, -6.05], [-5.4, 6.05]]);
+[6.05, -6.05].forEach(z => poly([[-4.9, z], [-5.8, z]]));
+poly([[-3.27, 7.0], [3.27, 7.0]]);
+[3.27, -3.27].forEach(x => poly([[x, 6.4], [x, 7.4]]));
+const NSEG = segs.length / 6;
+const lineGeo = new THREE.BufferGeometry(); lineGeo.setAttribute('position', new THREE.Float32BufferAttribute(segs, 3));
+const lineMat = new THREE.LineBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.9 });
+bookScene.add(new THREE.LineSegments(lineGeo, lineMat));
+function dimLabel(text, x, z, rotY) {
+  const t = canvasTex(256, 80, g => { g.clearRect(0, 0, 256, 80); g.fillStyle = '#fff'; g.font = `600 44px ${F_MONO}`; g.textAlign = 'center'; g.fillText(text, 128, 56); });
+  const m = new THREE.Mesh(new THREE.PlaneGeometry(1.6, 0.5), new THREE.MeshBasicMaterial({ map: t.tex, transparent: true, opacity: 0, depthWrite: false }));
+  m.geometry.rotateX(-Math.PI / 2); m.rotation.y = rotY || 0;
+  const p = mp(x, z); m.position.set(p[0], p[1] + 0.005, p[2]);
+  bookScene.add(m); return m.material;
+}
+const labels = [dimLabel('12,0', -6.1, 0), dimLabel('6,4', 0, 7.7, Math.PI / 2)];
+bookRoot.position.set(-pageW / 2 * BOOK_K, FLOOR_Y, 0.6 * BOOK_K);
+const PAGE_TOP = FLOOR_Y + (blockH + 0.012) * BOOK_K;
+
+/* ---------- hologram material: blue rim glow, blends to solid orange when highlighted ---------- */
+const holoMats = [];
+function holoMat() {
+  const m = new THREE.ShaderMaterial({
+    transparent: true, depthWrite: false, side: THREE.DoubleSide, blending: THREE.AdditiveBlending,
+    uniforms: { uHi: { value: 0 }, uTime: { value: 0 }, uFade: { value: 1 } },
+    vertexShader: `varying vec3 vN; varying vec3 vV; varying vec3 vW;
+      void main(){ vec4 mv = modelViewMatrix * vec4(position,1.0); vN = normalize(normalMatrix * normal); vV = normalize(-mv.xyz);
+        vW = (modelMatrix * vec4(position,1.0)).xyz; gl_Position = projectionMatrix * mv; }`,
+    fragmentShader: `uniform float uHi, uTime, uFade; varying vec3 vN; varying vec3 vV; varying vec3 vW;
+      void main(){
+        float rim = pow(1.0 - clamp(abs(dot(normalize(vN), normalize(vV))), 0.0, 1.0), 2.0);
+        float scan = 0.5 + 0.5 * sin(vW.y * 60.0 - uTime * 3.0);
+        vec3 blue = vec3(0.22, 0.50, 1.0), org = vec3(1.0, 0.42, 0.16);
+        vec3 c = mix(blue * (0.10 + 0.75 * rim + 0.05 * scan), org * (0.55 + 0.6 * rim), uHi);
+        gl_FragColor = vec4(c * uFade, 1.0);
+      }`
+  });
+  holoMats.push(m); return m;
+}
+const edgeMat = (op) => new THREE.LineBasicMaterial({ color: 0x5aa8ff, transparent: true, opacity: op, depthWrite: false, blending: THREE.AdditiveBlending });
+
+/* ---------- the drone, built in parts so each can be highlighted (forward = +x) ---------- */
+const drone = new THREE.Group(); scene.add(drone);
+const parts = {};
+function add(kind, geo, x, y, z, rx, parent) {
+  const mat = holoMat();
+  const mesh = new THREE.Mesh(geo, mat);
+  mesh.position.set(x, y, z); if (rx) mesh.rotation.x = rx;
+  const em = edgeMat(0.38);
+  mesh.add(new THREE.LineSegments(new THREE.EdgesGeometry(geo, 28), em));
+  (parent || drone).add(mesh);
+  (parts[kind] = parts[kind] || []).push({ mat, em });
+  return mesh;
+}
+const cyl = (r1, r2, h, s) => new THREE.CylinderGeometry(r1, r2, h, s || 14);
+const alongX = g => { g.rotateZ(-Math.PI / 2); return g; };
+const across = g => { g.rotateX(Math.PI / 2); return g; };
+{
+  const prof = [[0,-3.25],[0.14,-3.2],[0.22,-2.9],[0.34,-2.0],[0.44,-0.8],[0.48,0.4],[0.48,1.8],[0.44,2.5],[0.34,2.9],[0.18,3.15],[0,3.27]].map(([r, y]) => new THREE.Vector2(r, y));
+  const fg = new THREE.LatheGeometry(prof, 28); fg.rotateZ(-Math.PI / 2); fg.scale(1, 1.05, 0.92);
+  add('fus', fg, 0, 0, 0);
+  const ws = new THREE.Shape();
+  ws.moveTo(0.5, 0); ws.lineTo(0.3, 6); ws.lineTo(-0.2, 6.05); ws.lineTo(-0.45, 0); ws.lineTo(-0.2, -6.05); ws.lineTo(0.3, -6); ws.closePath();
+  const wg = new THREE.ExtrudeGeometry(ws, { depth: 0.09, bevelEnabled: true, bevelThickness: 0.03, bevelSize: 0.03, bevelSegments: 1 });
+  wg.rotateX(Math.PI / 2);
+  add('wing', wg, 0.45, 0.5, 0);
+  [1, -1].forEach(s => {
+    add('boom', alongX(cyl(0.06, 0.07, 4.6, 10)), -1.9, 0.42, 1.3 * s);
+    const fin = add('fin', new THREE.BoxGeometry(0.7, 1.35, 0.05), -4.0, 0.42 - 0.67 * Math.cos(0.7), (1.3 + 0.67 * Math.sin(0.7)) * s);
+    fin.rotation.x = -0.7 * s;
+    add('gear', new THREE.BoxGeometry(0.12, 0.9, 0.05), 0.3, -0.62, 0.42 * s, 0.7 * s);
+    add('gear', across(cyl(0.15, 0.15, 0.08, 14)), 0.3, -0.98, 0.72 * s);
+  });
+  add('gear', cyl(0.03, 0.03, 0.6, 6), 2.7, -0.7, 0);
+  add('gear', across(cyl(0.12, 0.12, 0.07, 14)), 2.7, -1.0, 0);
+  add('sensor', new THREE.SphereGeometry(0.24, 20, 14), 2.25, -0.62, 0);
+  add('sensor', cyl(0.1, 0.1, 0.18, 10), 2.25, -0.42, 0);
+  add('antenna', new THREE.BoxGeometry(0.25, 0.22, 0.04), 1.3, 0.55, 0);
+  /* inside the hull: a flat-four engine in the tail and the fuel tank amidships */
+  add('engine', new THREE.BoxGeometry(0.62, 0.26, 0.26), -2.55, 0, 0);
+  [-0.12, 0.12].forEach(dx => [1, -1].forEach(s => add('engine', across(cyl(0.07, 0.07, 0.22, 10)), -2.55 + dx, 0, 0.2 * s)));
+  add('engine', alongX(cyl(0.05, 0.05, 0.5, 8)), -3.0, 0, 0);
+  add('fuel', alongX(cyl(0.3, 0.3, 1.9, 20)), 0.35, 0.02, 0);
+  const prop = new THREE.Group(); prop.position.set(-3.38, 0, 0); drone.add(prop); drone.userData.prop = prop;
+  add('prop', new THREE.BoxGeometry(0.05, 1.7, 0.13), 0, 0, 0, 0.15, prop);
+  add('prop', alongX(new THREE.ConeGeometry(0.13, 0.35, 12)), -0.1, 0, 0, 0, prop);
+}
+const setHi = (kind, v) => (parts[kind] || []).forEach(({ mat, em }) => {
+  mat.uniforms.uHi.value = v;
+  em.color.setRGB(lerp(0.35, 1.0, v), lerp(0.66, 0.48, v), lerp(1.0, 0.24, v));
+  em.opacity = lerp(0.38, 0.9, v);
+});
+
+
+drone.rotation.y = Math.PI / 2;           // nose to −z, like the drawing
+const allEdges = []; Object.values(parts).forEach(list => list.forEach(p => allEdges.push(p.em)));
+function fadeAll(f) { holoMats.forEach(m => { m.uniforms.uFade.value = f; }); allEdges.forEach(e => { if (e.opacity > 0.39 * f + 0.001 || f < 1) e.opacity = Math.min(e.opacity, 0.9) * 0 + 0.38 * f; }); }
+
+/* small car for the weight beat: a plain hatchback, 3.7 m long, as a hologram */
+const car = new THREE.Group(); scene.add(car);
+{
+  const body = new THREE.Shape([[-1.85, 0.25], [1.85, 0.25], [1.85, 0.75], [1.2, 0.85], [0.55, 1.45], [-1.35, 1.45], [-1.8, 0.95]].map(([a, b]) => new THREE.Vector2(a, b)));
+  const bg = new THREE.ExtrudeGeometry(body, { depth: 1.6, bevelEnabled: false }); bg.translate(0, 0, -0.8);
+  add('car', bg, 0, 0, 0, 0, car);
+  [[1.15, 0.8], [1.15, -0.8], [-1.2, 0.8], [-1.2, -0.8]].forEach(([x, z]) => add('car', across(cyl(0.3, 0.3, 0.18, 16)), x, 0.3, z, 0, car));
+}
+car.position.set(-4.6, PAGE_TOP, 6.8); car.rotation.y = 0.5;
+
+/* dimension lines */
+const dimMat = new THREE.LineBasicMaterial({ color: 0xff9a66, transparent: true, opacity: 0 });
+function dimLine(a, b, tick) {
+  const pts = [a, b, a.clone().add(tick), a.clone().sub(tick), b.clone().add(tick), b.clone().sub(tick)];
+  const g = new THREE.BufferGeometry().setFromPoints(pts); g.setIndex([0, 1, 2, 3, 4, 5]);
+  const l = new THREE.LineSegments(g, dimMat); scene.add(l); return l;
+}
+const DRONE_Y = 1.25;
+const spanA = V(-6.05, DRONE_Y + 0.55, 0.9), spanB = V(6.05, DRONE_Y + 0.55, 0.9);
+const lenA = V(1.9, DRONE_Y + 0.1, -3.27), lenB = V(1.9, DRONE_Y + 0.1, 3.25);
+dimLine(spanA, spanB, V(0, 0, 0.35)); dimLine(lenA, lenB, V(0.35, 0, 0));
+const dims = [['12 м', spanA.clone().lerp(spanB, 0.5).add(V(0, 0, 0.9))], ['6,4 м', lenA.clone().lerp(lenB, 0.5).add(V(1.4, 0, 0))]].map(([txt, p]) => {
+  const el = document.createElement('div'); el.className = 'dim'; el.textContent = txt; $('#callouts').appendChild(el); return { el, p };
+});
+
+/* ---------- callouts ---------- */
+const coLayer = $('#callouts'), svgNS = 'http://www.w3.org/2000/svg';
+const lead = document.createElementNS(svgNS, 'svg'); coLayer.appendChild(lead);
+function callout(name, sub, anchorFn, offset, t0, t1) {
+  const el = document.createElement('div'); el.className = 'co';
+  el.innerHTML = `<i></i><span>${name}${sub ? `<small>${sub}</small>` : ''}</span>`;
+  coLayer.appendChild(el);
+  const line = document.createElementNS(svgNS, 'line'); lead.appendChild(line);
+  return { el, line, anchorFn, offset, t0, t1 };
+}
+const W2 = (obj, p) => obj.localToWorld(p.clone());
+const CALL = [
+  callout('■ КРИЛО ЯК У ПЛАНЕРА', 'довге й тонке', () => W2(drone, V(0.4, 0.55, 4.6)), [0.04, -0.12], 13.4, 16.0),
+  callout('■ ГВИНТ ЗЗАДУ', 'штовхає, а не тягне', () => W2(drone, V(-3.38, 0.0, 0)), [-0.05, 0.11], 14.3, 16.0),
+];
+const _v = V(0, 0, 0);
+const toScreen = p => { _v.copy(p).project(camera); return [(_v.x + 1) / 2 * innerWidth, (1 - _v.y) / 2 * innerHeight]; };
+function updateCallouts(t) {
+  camera.updateMatrixWorld(); scene.updateMatrixWorld();
+  CALL.forEach(c => {
+    const a = win(c.t0, c.t0 + 0.3, c.t1 - 0.3, c.t1, t);
+    c.el.style.opacity = a; c.line.style.opacity = a;
+    if (a <= 0) return;
+    const [ax, ay] = toScreen(c.anchorFn());
+    let x = ax + c.offset[0] * innerWidth, y = ay + c.offset[1] * innerHeight;
+    const left = c.offset[0] < 0;
+    c.el.classList.toggle('left', left);
+    const w = c.el.offsetWidth, pad = 12;
+    x = left ? Math.max(x, w - 6 + pad) : Math.min(x, innerWidth - w + 6 - pad);
+    c.el.style.left = x + 'px'; c.el.style.top = y + 'px';
+    c.line.setAttribute('x1', ax); c.line.setAttribute('y1', ay); c.line.setAttribute('x2', x); c.line.setAttribute('y2', y);
+  });
+  const da = win(6.2, 6.6, 9.3, 9.7, t);
+  dimMat.opacity = 0.95 * da;
+  dims.forEach(({ el, p }, i) => { const a = i === 0 ? da : win(7.6, 8.0, 9.3, 9.7, t); el.style.opacity = a; const [x, y] = toScreen(p); el.style.left = x + 'px'; el.style.top = y + 'px'; });
+}
+
+/* ---------- post: bloom + grain/vignette ---------- */
+const FilmShader = {
+  uniforms: { tDiffuse: { value: null }, uTime: { value: 0 }, uGrain: { value: 0.045 }, uVig: { value: 0.45 } },
+  vertexShader: `varying vec2 vUv; void main(){ vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.0); }`,
+  fragmentShader: `uniform sampler2D tDiffuse; uniform float uTime, uGrain, uVig; varying vec2 vUv;
+    float h(vec2 p){ return fract(sin(dot(p, vec2(12.9898,78.233))) * 43758.5453); }
+    void main(){ vec4 c = texture2D(tDiffuse, vUv);
+      c.rgb += (h(gl_FragCoord.xy + fract(uTime * 13.0) * 517.0) - 0.5) * uGrain;
+      vec2 d = (vUv - 0.5) * vec2(0.8, 1.0);
+      c.rgb *= mix(1.0 - uVig, 1.0, smoothstep(0.66, 0.2, length(d)));
+      gl_FragColor = c; }`
+};
+const rt = renderer.capabilities.isWebGL2 && THREE.WebGLMultisampleRenderTarget
+  ? new THREE.WebGLMultisampleRenderTarget(innerWidth * renderer.getPixelRatio(), innerHeight * renderer.getPixelRatio(), { format: THREE.RGBAFormat })
+  : undefined;
+const composer = new THREE.EffectComposer(renderer, rt);
+composer.setPixelRatio(renderer.getPixelRatio()); composer.setSize(innerWidth, innerHeight);
+composer.addPass(new THREE.RenderPass(scene, camera));
+const bloom = new THREE.UnrealBloomPass(new THREE.Vector2(innerWidth, innerHeight), 0.32, 0.45, 0.35);
+composer.addPass(bloom);
+const film = new THREE.ShaderPass(FilmShader); composer.addPass(film);
+
+
+
+/* ---------- camera ---------- */
+const KEYS = [
+  [0.0,  V(-2.0, 44, 30), V(-1.5, -1.0, 0.5)],
+  [2.6,  V(3.0, 24, 21),  V(0, -0.6, 0.5)],
+  [5.6,  V(8.0, 8.5, 15), V(0, 0.6, 0.3)],
+  [6.4,  V(1.0, 19, 9.5), V(0, 0.6, 0.6)],
+  [9.4,  V(1.0, 18, 9.0), V(0, 0.6, 0.6)],
+  [10.2, V(-1.5, 6.5, 17), V(-2.0, 0.4, 3.5)],
+  [12.8, V(-1.0, 6.2, 16.5), V(-2.0, 0.4, 3.5)],
+  [13.6, V(7.5, 3.4, 9.5), V(0, 1.0, 0.3)],
+  [15.8, V(7.0, 3.2, 9.0), V(0, 1.0, 0.3)],
+  [16.6, V(6.0, 7.5, 15),  V(0, 2.8, 2.0)],
+  [19.0, V(5.6, 7.0, 14.5), V(0, 2.8, 2.0)],
+];
+const _p = V(0, 0, 0), _l = V(0, 0, 0);
+function cameraAt(t) {
+  let i = 0; while (i < KEYS.length - 2 && t > KEYS[i + 1][0]) i++;
+  const [t0, p0, l0] = KEYS[i], [t1, p1, l1] = KEYS[i + 1];
+  const u = smooth(t0, t1, t);
+  _p.copy(p0).lerp(p1, u); _l.copy(l0).lerp(l1, u);
+  camera.position.copy(_p); camera.lookAt(_l);
+  camera.fov = fitFov(40); camera.aspect = innerWidth / innerHeight; camera.updateProjectionMatrix();
+}
+
+/* ---------- per-frame ---------- */
+function render(t) {
+  holoMats.forEach(m => { m.uniforms.uTime.value = t; });
+  drone.userData.prop.rotation.x = t * 9 * smooth(4.0, 5.5, t);
+  /* book opens, drawing draws, labels show */
+  hinge.rotation.z = Math.PI * (1 - smooth(0.2, 2.0, t));
+  lineGeo.setDrawRange(0, 2 * Math.floor(clamp01((t - 1.8) / 1.6) * NSEG));
+  const dim = 1 - 0.6 * smooth(4.0, 5.2, t);
+  lineMat.opacity = 0.9 * dim;
+  labels.forEach(m => { m.opacity = smooth(3.0, 3.5, t) * dim * (1 - smooth(5.6, 6.2, t)); });
+  /* the hologram rises off the page */
+  const rise = smooth(3.4, 5.4, t);
+  drone.position.y = lerp(PAGE_TOP + 0.62, DRONE_Y, rise) + 0.05 * Math.sin(t * 1.3) * rise;
+  drone.rotation.y = Math.PI / 2 + (t > 13.0 ? 2 * Math.PI * smooth(13.0, 16.4, t) : 0);
+  const show = smooth(3.4, 4.4, t);
+  holoMats.forEach(m => { m.uniforms.uFade.value = show; });
+  allEdges.forEach(e => { e.opacity = 0.38 * show; });
+  /* car beat */
+  const carA = win(9.8, 10.3, 12.8, 13.3, t);
+  (parts.car || []).forEach(({ mat, em }) => { mat.uniforms.uFade.value = carA; em.opacity = 0.38 * carA; });
+  car.visible = carA > 0.01;
+  /* highlights */
+  setHi('wing', win(13.2, 13.7, 15.6, 16.1, t));
+  setHi('prop', win(14.2, 14.6, 15.6, 16.1, t));
+  setHi('fus', 0.35 * win(3.6, 4.2, 4.8, 5.6, t));
+  cameraAt(t);
+  updateCallouts(t);
+  /* DOM */
+  $('#rubric').style.opacity = win(0.2, 0.6, 2.4, 2.9, t);
+  $('#weights').style.opacity = win(10.4, 10.8, 12.9, 13.3, t);
+  $('#wTb').style.width = (70 * smooth(10.8, 11.8, t)) + '%';
+  $('#wCar').style.width = (100 * smooth(11.4, 12.4, t)) + '%';
+  document.querySelectorAll('#skills div').forEach((d, i) => { d.style.opacity = smooth(16.6 + i * 0.32, 16.9 + i * 0.32, t); });
+  $('#prog').style.width = (100 * t / DUR) + '%';
+  $('#fade').style.opacity = 1 - smooth(0, 0.4, t);
+  film.uniforms.uTime.value = t;
+  composer.render();
+}
+
+/* ---------- transport and capture contract ---------- */
+const scrub = $('#scrub'), timeEl = $('#time'), playBtn = $('#play');
+let t = 0, playing = !window.matchMedia('(prefers-reduced-motion: reduce)').matches, last = performance.now(), scrubbing = false;
+function setPlaying(p) { playing = p; $('#icoPause').hidden = !p; $('#icoPlay').hidden = p; playBtn.setAttribute('aria-label', p ? 'Пауза' : 'Відтворити'); }
+setPlaying(playing); if (!playing) t = 8.0;
+playBtn.addEventListener('click', () => setPlaying(!playing));
+scrub.addEventListener('input', () => { scrubbing = true; t = parseFloat(scrub.value); });
+scrub.addEventListener('change', () => { scrubbing = false; });
+function loop(now) {
+  const dt = Math.min(0.05, (now - last) / 1000); last = now;
+  if (playing && !scrubbing) { t += dt; if (t >= DUR) t -= DUR; }
+  render(t);
+  if (!scrubbing) scrub.value = t.toFixed(2);
+  timeEl.textContent = t.toFixed(1).padStart(4, '0') + ' / ' + DUR.toFixed(1);
+  requestAnimationFrame(loop);
+}
+window.addEventListener('resize', () => { renderer.setSize(innerWidth, innerHeight); composer.setSize(innerWidth, innerHeight); });
+window.DURATION = DUR; window.FPS = 30;
+window.seek = s => { t = s; render(s); };
+if (new URLSearchParams(location.search).has('render')) { $('#controls').hidden = true; render(0); }
+else requestAnimationFrame(loop);
+})();
+</script>
