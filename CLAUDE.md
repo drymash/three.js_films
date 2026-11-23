@@ -25,6 +25,7 @@
 - Перший ролик: https://claude.ai/artifact/QHt8Qpg3pcQGmUFabh8M3N
 - Сцена 00а «Київ у кільці»: https://claude.ai/artifact/8dE7HpUuUFM9Z1cKjEwTSj
 - Сцена 00б «Колона»: https://claude.ai/artifact/MarVujaKbdBSTX7FwUwL2Z
+- Сцена 09а «Звільнення»: https://claude.ai/artifact/G4dCLoR18oH22oqZ81XWHp
 - Сцена 03 «Не сідати»: https://claude.ai/artifact/M9466B8Ljv6xxSJmMwFXm6
 - Сцена 04 «Не бути поміченим»: https://claude.ai/artifact/Hj8fg7bRQrqhKPoxgXTGNr
 - Сцена 05 «Бачити»: https://claude.ai/artifact/7MMEjd1E9J16BLy2p4hipd
