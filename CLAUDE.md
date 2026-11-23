@@ -26,6 +26,7 @@
 - Сцена 03 «Не сідати»: https://claude.ai/artifact/M9466B8Ljv6xxSJmMwFXm6
 - Сцена 04 «Не бути поміченим»: https://claude.ai/artifact/Hj8fg7bRQrqhKPoxgXTGNr
 - Сцена 05 «Бачити»: https://claude.ai/artifact/7MMEjd1E9J16BLy2p4hipd
+- Сцена 06 «Літати самому»: https://claude.ai/artifact/4k3eYMRhDj7yR1qqbv9WZJ
 
 ## Візуальна мова сцен
 - Темна студія `#0b0f16`, підлога-сітка, синя голограма з помаранчевою підсвіткою `#ff7a3d` того, про що зараз говорить голос.
