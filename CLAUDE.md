@@ -28,6 +28,7 @@
 - Сцена 05 «Бачити»: https://claude.ai/artifact/7MMEjd1E9J16BLy2p4hipd
 - Сцена 06 «Літати самому»: https://claude.ai/artifact/4k3eYMRhDj7yR1qqbv9WZJ
 - Сцена 07 «Зв'язок»: https://claude.ai/artifact/FfXBs3yT2vcQAFMSA3KMLp
+- Сцена 08 «Ціна»: https://claude.ai/artifact/B9xszPj2SaX9hFJJUKovDP
 
 ## Візуальна мова сцен
 - Темна студія `#0b0f16`, підлога-сітка, синя голограма з помаранчевою підсвіткою `#ff7a3d` того, про що зараз говорить голос.
