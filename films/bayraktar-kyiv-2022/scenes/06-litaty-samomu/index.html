@@ -1,0 +1,484 @@
+<title>Вміння № 4 · Літати самому</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;600&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: a dark staff-map table with contour lines; the hologram drone flies its own route on it, loses GPS,
+   loses an autopilot, and finally the crew of three tells it where to look. Vertical-first, single dark look. */
+:root{
+  --bg:#0b0f16;
+  --fg:#eef1f4;
+  --muted:#8e9aab;
+  --accent:#ff7a3d;
+  --display:'Oswald','Arial Narrow',Arial,sans-serif;
+  --mono:'JetBrains Mono',ui-monospace,Menlo,Consolas,monospace;
+  color-scheme:dark;
+}
+[hidden]{display:none!important}
+html,body{height:100%;margin:0;background:var(--bg);color:var(--fg);overflow:hidden}
+#stage{position:fixed;inset:0}
+#stage canvas{display:block;width:100%;height:100%}
+#fade{position:fixed;inset:0;background:#000;pointer-events:none;z-index:9}
+.ui{position:fixed;z-index:5;pointer-events:none}
+.corners{inset:2.2vmin}
+.corners i{position:absolute;width:3.2vmin;height:3.2vmin;border:0 solid rgba(255,255,255,.35)}
+.corners i:nth-child(1){left:0;top:0;border-left-width:1.5px;border-top-width:1.5px}
+.corners i:nth-child(2){right:0;top:0;border-right-width:1.5px;border-top-width:1.5px}
+.corners i:nth-child(3){left:0;bottom:0;border-left-width:1.5px;border-bottom-width:1.5px}
+.corners i:nth-child(4){right:0;bottom:0;border-right-width:1.5px;border-bottom-width:1.5px}
+#chapter{left:max(5vmin,env(safe-area-inset-left,0px));top:6.5vh;font:600 clamp(10px,1.9vmin,16px)/1.3 var(--mono);letter-spacing:.14em;text-transform:uppercase}
+#chapter .bar{margin-top:8px;width:22vmin;height:2px;background:rgba(255,255,255,.18)}
+#chapter .bar b{display:block;height:100%;width:0;background:var(--accent)}
+#chapter .num{color:var(--accent)}
+#mark{right:max(5vmin,env(safe-area-inset-right,0px));top:6.5vh;font:600 clamp(10px,1.9vmin,16px)/1.3 var(--mono);letter-spacing:.14em;color:var(--muted);text-align:right}
+#rubric{left:0;right:0;top:13vh;text-align:center;opacity:0}
+#rubric .eyebrow{font:600 clamp(12px,2.4vmin,22px)/1 var(--mono);letter-spacing:.3em;color:var(--accent)}
+#rubric h1{margin:1.2vh 0 0;font:600 clamp(36px,9vmin,110px)/1 var(--display);letter-spacing:.05em;text-transform:uppercase}
+#stamp{left:0;right:0;top:24vh;text-align:center;font:600 clamp(14px,3vmin,28px)/1 var(--mono);letter-spacing:.3em;color:var(--fg);opacity:0}
+#stamp b{color:var(--accent);font-weight:600}
+#callouts{inset:0}
+#callouts svg{position:absolute;inset:0;width:100%;height:100%;overflow:visible}
+#callouts line{stroke:var(--accent);stroke-width:1.5;stroke-opacity:.9}
+.co{position:absolute;display:flex;align-items:center;gap:8px;transform:translate(-6px,-50%);opacity:0;white-space:nowrap;
+  font:600 clamp(12px,2.5vmin,24px)/1.2 var(--mono);letter-spacing:.04em;color:#fff}
+.co.left{flex-direction:row-reverse;transform:translate(calc(-100% + 6px),-50%)}
+.co i{width:11px;height:11px;border-radius:50%;background:var(--accent);box-shadow:0 0 0 4px rgba(255,122,61,.28);flex:none}
+.co span{background:rgba(8,14,26,.82);padding:6px 11px;border:1px solid rgba(255,255,255,.2);border-radius:3px}
+.co small{display:block;font-weight:400;color:var(--muted);font-size:.74em;margin-top:2px}
+.co.white i{background:#fff;box-shadow:0 0 0 4px rgba(255,255,255,.2)}
+.co.red i{background:#ff4d4d;box-shadow:0 0 0 4px rgba(255,77,77,.3)}
+#controls{position:fixed;left:0;right:0;bottom:0;z-index:10;display:flex;align-items:center;gap:12px;
+  padding-block:10px calc(10px + env(safe-area-inset-bottom,0px));
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));
+  font:400 12px/1 var(--mono);color:var(--muted);opacity:.35;transition:opacity .25s}
+#controls:hover,#controls:focus-within{opacity:1}
+#controls button{all:unset;cursor:pointer;width:30px;height:30px;display:grid;place-items:center;border-radius:50%;color:var(--fg);background:rgba(255,255,255,.08)}
+#controls button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+#controls svg{width:14px;height:14px;fill:currentColor}
+#scrub{flex:1;min-width:0;accent-color:var(--accent)}
+#time{font-variant-numeric:tabular-nums;min-width:9ch;text-align:right;color:var(--fg)}
+</style>
+
+<div id="stage"></div>
+<div class="ui corners"><i></i><i></i><i></i><i></i></div>
+<div class="ui" id="chapter"><span class="num">06 / 09</span> · ВМІННЯ № 4<div class="bar"><b id="prog"></b></div></div>
+<div class="ui" id="mark">BAYRAKTAR TB2</div>
+<div class="ui" id="rubric"><div class="eyebrow">ВМІННЯ № 4</div><h1>Літати самому</h1></div>
+<div class="ui" id="stamp"></div>
+<div class="ui" id="callouts"></div>
+<div id="fade"></div>
+
+<div id="controls">
+  <button id="play" type="button" aria-label="Пауза">
+    <svg id="icoPause" viewBox="0 0 16 16"><rect x="3" y="2" width="3.5" height="12"/><rect x="9.5" y="2" width="3.5" height="12"/></svg>
+    <svg id="icoPlay" viewBox="0 0 16 16" hidden><path d="M4 2l10 6-10 6z"/></svg>
+  </button>
+  <input id="scrub" type="range" min="0" max="18" step="0.01" value="0" aria-label="Час сцени">
+  <span id="time">00.0 / 18.0</span>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/shaders/CopyShader.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/shaders/LuminosityHighPassShader.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/EffectComposer.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/RenderPass.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/ShaderPass.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/UnrealBloomPass.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/libs/fflate.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/FBXLoader.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/utils/SkeletonUtils.js"></script>
+<!-- "Animated Human" by Quaternius, CC0 1.0 (../05-bachyty/assets/HUMAN-LICENSE.txt), embedded as base64 -->
+<script src="human-fbx.js"></script>
+<script>
+(() => {
+const DUR = 18;
+const $ = s => document.querySelector(s);
+const clamp01 = x => Math.min(1, Math.max(0, x));
+const smooth = (a, b, x) => { const t = clamp01((x - a) / (b - a)); return t * t * (3 - 2 * t); };
+const lerp = (a, b, t) => a + (b - a) * t;
+const win = (a, b, c, d, t) => smooth(a, b, t) * (1 - smooth(c, d, t));
+const V = (x, y, z) => new THREE.Vector3(x, y, z);
+
+/* voice-over this scene is paced to (no captions on screen; retime after the recording)
+   0.3–3.6   Злітає сам. Сідає сам. Тримає маршрут сам.
+   3.9–8.6   Навіть без GPS він знає, де він: власні датчики зводять дані докупи.
+   9.0–12.6  Автопілот — потрійний. Відмовить один — працюють інші.
+   13.0–17.6 Троє людей на землі не кермують ним. Вони кажуть йому, куди дивитися.
+   Facts (Baykar): autonomous taxi, take-off, cruise and landing; navigation from internal sensor fusion without GPS;
+   triple-redundant autopilot; three redundant sensor fusion units; ground crew of three. */
+
+/* ---------- renderer ---------- */
+const renderer = new THREE.WebGLRenderer({ antialias: true });
+renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+renderer.setSize(innerWidth, innerHeight);
+$('#stage').appendChild(renderer.domElement);
+function fitFov(f) {
+  const a = innerWidth / innerHeight;
+  if (a >= 1) return f;
+  const tanH = Math.tan(f * Math.PI / 360) * (16 / 9) * 0.6;
+  return 2 * Math.atan(tanH / a) * 180 / Math.PI;
+}
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x0b0f16);
+const cam = new THREE.PerspectiveCamera(40, innerWidth / innerHeight, 1, 20000);
+
+/* the staff-map table: grid, contour lines, runway */
+const map = new THREE.Mesh(new THREE.PlaneGeometry(12000, 12000), new THREE.ShaderMaterial({
+  depthWrite: false, extensions: { derivatives: true },
+  vertexShader: `varying vec3 vW; void main(){ vec4 w = modelMatrix * vec4(position,1.0); vW = w.xyz; gl_Position = projectionMatrix * viewMatrix * w; }`,
+  fragmentShader: `varying vec3 vW;
+    float h(vec2 p){ return fract(sin(dot(p, vec2(127.1,311.7))) * 43758.5453); }
+    float n(vec2 p){ vec2 i = floor(p), f = fract(p); f = f*f*(3.0-2.0*f);
+      return mix(mix(h(i), h(i+vec2(1,0)), f.x), mix(h(i+vec2(0,1)), h(i+vec2(1,1)), f.x), f.y); }
+    float line(float c, float w){ float f = abs(fract(c - 0.5) - 0.5) / fwidth(c); return 1.0 - min(f / w, 1.0); }
+    void main(){
+      vec2 p = vW.xz;
+      float e = n(p / 900.0) * 0.65 + n(p / 330.0) * 0.35;
+      float contour = line(e * 9.0, 1.0) * 0.16;
+      float g = max(line(p.x / 200.0, 1.0), line(p.y / 200.0, 1.0)) * 0.08;
+      float r = length(p - vec2(200.0, 150.0)); float pool = exp(-r * r / 3.2e6);
+      vec3 c = vec3(0.045, 0.062, 0.09) + vec3(0.04, 0.07, 0.11) * pool + vec3(0.3, 0.55, 0.95) * (contour + g) * (0.35 + pool);
+      gl_FragColor = vec4(c, 1.0); }`
+}));
+map.rotation.x = -Math.PI / 2; scene.add(map);
+{
+  const rw = new THREE.Mesh(new THREE.PlaneGeometry(520, 26), new THREE.MeshBasicMaterial({ color: 0x5aa8ff, transparent: true, opacity: 0.16, depthWrite: false }));
+  rw.rotation.x = -Math.PI / 2; rw.position.set(-40, 0.5, 0); scene.add(rw);
+  const pts = []; for (let x = -290; x < 210; x += 30) pts.push(V(x, 0.8, 0), V(x + 16, 0.8, 0));
+  scene.add(new THREE.LineSegments(new THREE.BufferGeometry().setFromPoints(pts), new THREE.LineBasicMaterial({ color: 0xbfe0ff, transparent: true, opacity: 0.6 })));
+  const edge = new THREE.LineSegments(new THREE.EdgesGeometry(new THREE.PlaneGeometry(520, 26)), new THREE.LineBasicMaterial({ color: 0x5aa8ff, transparent: true, opacity: 0.55 }));
+  edge.rotation.x = -Math.PI / 2; edge.position.set(-40, 0.7, 0); scene.add(edge);
+}
+
+const holoMats = [];
+function holoMat(base, skinned) {
+  const m = new THREE.ShaderMaterial({
+    skinning: !!skinned,
+    transparent: true, depthWrite: false, side: THREE.DoubleSide, blending: THREE.AdditiveBlending,
+    uniforms: { uHi: { value: 0 }, uTime: { value: 0 }, uFade: { value: 1 }, uBase: { value: base || new THREE.Color(0.22, 0.50, 1.0) } },
+    vertexShader: `#include <common>
+      #include <skinning_pars_vertex>
+      varying vec3 vN; varying vec3 vV; varying vec3 vW;
+      void main(){
+        #include <beginnormal_vertex>
+        #include <skinbase_vertex>
+        #include <skinnormal_vertex>
+        #include <begin_vertex>
+        #include <skinning_vertex>
+        vec4 mv = modelViewMatrix * vec4(transformed,1.0); vN = normalize(normalMatrix * objectNormal); vV = normalize(-mv.xyz);
+        vW = (modelMatrix * vec4(transformed,1.0)).xyz; gl_Position = projectionMatrix * mv; }`,
+    fragmentShader: `uniform float uHi, uTime, uFade; uniform vec3 uBase; varying vec3 vN; varying vec3 vV; varying vec3 vW;
+      void main(){ float rim = pow(1.0 - clamp(abs(dot(normalize(vN), normalize(vV))), 0.0, 1.0), 2.0);
+        float scan = 0.5 + 0.5 * sin(vW.y * 60.0 - uTime * 3.0);
+        vec3 org = vec3(1.0, 0.42, 0.16);
+        vec3 c = mix(uBase * (0.06 + 0.55 * rim + 0.04 * scan), org * (0.22 + 0.42 * rim), uHi);
+        gl_FragColor = vec4(c * uFade, 1.0); }`
+  });
+  holoMats.push(m); return m;
+}
+const parts = {};
+function add(kind, geo, x, y, z, parent, rx, base) {
+  const mat = holoMat(base);
+  const mesh = new THREE.Mesh(geo, mat);
+  mesh.position.set(x, y, z); if (rx) mesh.rotation.x = rx;
+  const em = new THREE.LineBasicMaterial({ color: base ? 0xffffff : 0x5aa8ff, transparent: true, opacity: 0.38, depthWrite: false, blending: THREE.AdditiveBlending });
+  mesh.add(new THREE.LineSegments(new THREE.EdgesGeometry(geo, 28), em));
+  parent.add(mesh);
+  (parts[kind] = parts[kind] || []).push({ mat, em, base: !!base });
+  return mesh;
+}
+const setHi = (kind, v) => (parts[kind] || []).forEach(({ mat, em, base }) => {
+  mat.uniforms.uHi.value = v;
+  if (base) return;
+  em.color.setRGB(lerp(0.35, 1.0, v), lerp(0.66, 0.48, v), lerp(1.0, 0.24, v)); em.opacity = lerp(0.38, 0.9, v);
+});
+const setFade = (kind, v) => (parts[kind] || []).forEach(({ mat, em }) => { mat.uniforms.uFade.value = v; em.opacity = 0.38 * v; });
+const cyl = (r1, r2, h, s) => new THREE.CylinderGeometry(r1, r2, h, s || 14);
+const alongX = g => { g.rotateZ(-Math.PI / 2); return g; };
+const across = g => { g.rotateX(Math.PI / 2); return g; };
+
+/* ---------- the drone (forward = +x), schematic scale ×6 ---------- */
+const S_DRONE = 6;
+const droneRoot = new THREE.Group(); scene.add(droneRoot);
+const droneInner = new THREE.Group(); droneInner.rotation.y = -Math.PI / 2; droneInner.scale.setScalar(S_DRONE); droneRoot.add(droneInner);
+const drone = new THREE.Group(); droneInner.add(drone);
+let prop;
+{
+  const prof = [[0,-3.25],[0.14,-3.2],[0.22,-2.9],[0.34,-2.0],[0.44,-0.8],[0.48,0.4],[0.48,1.8],[0.44,2.5],[0.34,2.9],[0.18,3.15],[0,3.27]].map(([r, y]) => new THREE.Vector2(r, y));
+  const fg = new THREE.LatheGeometry(prof, 28); fg.rotateZ(-Math.PI / 2); fg.scale(1, 1.05, 0.92);
+  add('body', fg, 0, 0, 0, drone);
+  const ws = new THREE.Shape(); ws.moveTo(0.5, 0); ws.lineTo(0.3, 6); ws.lineTo(-0.2, 6.05); ws.lineTo(-0.45, 0); ws.lineTo(-0.2, -6.05); ws.lineTo(0.3, -6); ws.closePath();
+  const wg = new THREE.ExtrudeGeometry(ws, { depth: 0.09, bevelEnabled: true, bevelThickness: 0.03, bevelSize: 0.03, bevelSegments: 1 }); wg.rotateX(Math.PI / 2);
+  add('body', wg, 0.45, 0.5, 0, drone);
+  [1, -1].forEach(s => {
+    add('body', alongX(cyl(0.06, 0.07, 4.6, 10)), -1.9, 0.42, 1.3 * s, drone);
+    const fin = add('body', new THREE.BoxGeometry(0.7, 1.35, 0.05), -4.0, 0.42 - 0.67 * Math.cos(0.7), (1.3 + 0.67 * Math.sin(0.7)) * s, drone); fin.rotation.x = -0.7 * s;
+    add('body', across(cyl(0.15, 0.15, 0.08, 14)), 0.3, -0.98, 0.72 * s, drone);
+  });
+  add('body', new THREE.SphereGeometry(0.24, 18, 12), 2.25, -0.62, 0, drone);
+  /* inside: three sensor-fusion units and three autopilot units */
+  [-0.55, -0.15, 0.25].forEach((x, i) => add('fuse' + i, new THREE.BoxGeometry(0.28, 0.2, 0.22), x, 0.0, 0, drone));
+  [0.95, 1.3, 1.65].forEach((x, i) => add('ap' + i, new THREE.BoxGeometry(0.28, 0.22, 0.26), x, 0.02, 0, drone));
+  prop = new THREE.Group(); prop.position.set(-3.38, 0, 0); drone.add(prop);
+  add('body', new THREE.BoxGeometry(0.05, 1.7, 0.13), 0, 0, 0, prop, 0.15);
+}
+const FUSE_LOCAL = [V(-0.55, 0, 0), V(-0.15, 0, 0), V(0.25, 0, 0)], AP_LOCAL = [V(0.95, 0.02, 0), V(1.3, 0.02, 0), V(1.65, 0.02, 0)];
+
+/* ---------- flight paths ---------- */
+const ALT = 120;
+const takeoff = new THREE.CatmullRomCurve3([V(-260, 4, 0), V(-60, 4, 0), V(160, 12, 0), V(420, 70, -60), V(760, ALT, -260), V(1050, ALT, 150),
+  V(800, ALT, 620), V(200, ALT, 720), V(-420, ALT, 420), V(-760, 70, 80), V(-620, 20, 0), V(-380, 5, 0), V(-120, 4, 0)]);
+const cruise = new THREE.CatmullRomCurve3([V(700, ALT, -300), V(1050, ALT, 200), V(700, ALT, 700), V(0, ALT, 760), V(-600, ALT, 400), V(-500, ALT, -250), V(150, ALT, -480)], true);
+const ROUTE_PTS = takeoff.getPoints(240);
+const routeGeo = new THREE.BufferGeometry().setFromPoints(ROUTE_PTS.map(p => V(p.x, 1.2, p.z)));
+const route = new THREE.Line(routeGeo, new THREE.LineDashedMaterial({ color: 0xff9a66, dashSize: 26, gapSize: 16, transparent: true, opacity: 0 }));
+route.computeLineDistances(); scene.add(route);
+const wpMat = new THREE.MeshBasicMaterial({ color: 0xff7a3d, transparent: true, opacity: 0, side: THREE.DoubleSide, depthWrite: false });
+[4, 5, 6, 7, 8].forEach(i => { const p = takeoff.points[i]; const r = new THREE.Mesh(new THREE.RingGeometry(16, 22, 32), wpMat); r.rotation.x = -Math.PI / 2; r.position.set(p.x, 1.5, p.z); scene.add(r); });
+function poseOn(curve, s) {
+  const p = curve.getPointAt(clamp01(s)), tng = curve.getTangentAt(clamp01(s));
+  const a = curve.getTangentAt(clamp01(s + 0.01)), turn = tng.x * a.z - tng.z * a.x;
+  return { p, tng, bank: Math.max(-0.5, Math.min(0.5, -turn * 25)) };
+}
+function placeDrone(p, tng, bank) {
+  droneRoot.position.copy(p);
+  droneRoot.lookAt(p.clone().add(tng));
+  droneRoot.rotateZ(bank);
+}
+
+/* ---------- GPS satellites and the fusion ring ---------- */
+const WHITE = new THREE.Color(0.42, 0.47, 0.56);
+const sats = [V(-230, 300, -170), V(250, 330, -120), V(-170, 340, 200), V(210, 310, 230)].map(off => {
+  const g = new THREE.Group(); scene.add(g);
+  add('sat', new THREE.BoxGeometry(14, 14, 14), 0, 0, 0, g, 0, WHITE);
+  add('sat', new THREE.BoxGeometry(46, 1, 12), 0, 0, 0, g, 0, WHITE);
+  const line = new THREE.Line(new THREE.BufferGeometry().setFromPoints([V(0, 0, 0), V(1, 1, 1)]),
+    new THREE.LineDashedMaterial({ color: 0xbfe0ff, dashSize: 14, gapSize: 10, transparent: true, opacity: 0 }));
+  line.frustumCulled = false; scene.add(line);
+  return { g, off, line };
+});
+const posRing = new THREE.Mesh(new THREE.RingGeometry(30, 36, 48), new THREE.MeshBasicMaterial({ color: 0xff7a3d, transparent: true, opacity: 0, side: THREE.DoubleSide, depthWrite: false }));
+posRing.rotation.x = -Math.PI / 2; scene.add(posRing);
+const fusionLines = FUSE_LOCAL.map(() => { const l = new THREE.Line(new THREE.BufferGeometry().setFromPoints([V(0, 0, 0), V(1, 1, 1)]), new THREE.LineBasicMaterial({ color: 0xff9a66, transparent: true, opacity: 0 })); l.frustumCulled = false; scene.add(l); return l; });
+
+/* ---------- ground control station: cut-away container, three consoles, crew of three ---------- */
+const HUMAN_SRC = new THREE.FBXLoader().parse(Uint8Array.from(atob(window.HUMAN_FBX_B64), c => c.charCodeAt(0)).buffer, '');
+const IDLE = HUMAN_SRC.animations.find(a => a.name.endsWith('Idle'));
+function makeHuman(height, pose, materialFor) {
+  const o = THREE.SkeletonUtils.clone(HUMAN_SRC);
+  const mixer = new THREE.AnimationMixer(o); mixer.clipAction(IDLE).play(); mixer.setTime(2.0);
+  const B = {}; o.traverse(c => { if (c.isBone) B[c.name] = c; if (c.isMesh) { c.material = materialFor(c); c.frustumCulled = false; } });
+  if (pose) pose(B);
+  o.scale.setScalar(1); o.updateMatrixWorld(true);
+  const top = B.HeadTop_End.getWorldPosition(V(0, 0, 0)).y - o.getWorldPosition(V(0, 0, 0)).y;
+  o.scale.setScalar(height / (top * 1.04));
+  o.userData = { mixer, B, pose }; return o;
+}
+const S_GCS = 3, GCS = V(-430, 0, -330);
+const gcs = new THREE.Group(); gcs.position.copy(GCS); gcs.scale.setScalar(S_GCS); gcs.rotation.y = 0.35; scene.add(gcs);
+add('gcs', new THREE.BoxGeometry(12, 0.15, 2.4), 0, 0.075, 0, gcs, 0, WHITE);
+add('gcs', new THREE.BoxGeometry(12, 2.6, 0.08), 0, 1.3, -1.2, gcs, 0, WHITE);
+[-6, 6].forEach(x => add('gcs', new THREE.BoxGeometry(0.08, 2.6, 2.4), x, 1.3, 0, gcs, 0, WHITE));
+add('gcs', cyl(0.04, 0.04, 3.2, 6), 5.6, 4.2, -0.9, gcs, 0, WHITE);
+const MAST_LOCAL = V(5.6, 5.8, -0.9);
+const screenMat = new THREE.MeshBasicMaterial({ color: 0x5aa8ff, transparent: true, opacity: 0.0 });
+const deg = Math.PI / 180;
+const consolePose = Bn => {
+  Bn.LeftUpLeg.rotation.x += -85 * deg; Bn.RightUpLeg.rotation.x += -85 * deg;
+  Bn.LeftLeg.rotation.x -= 85 * deg; Bn.RightLeg.rotation.x -= 85 * deg;
+  Bn.LeftArm.rotation.x += 45 * deg; Bn.LeftForeArm.rotation.x += 35 * deg;
+  Bn.RightArm.rotation.x += 45 * deg; Bn.RightForeArm.rotation.x += 35 * deg;
+};
+const crewMat = holoMat(WHITE, true);
+(parts.crew = parts.crew || []).push({ mat: crewMat, em: new THREE.LineBasicMaterial(), base: true });
+const CREW_X = [-3.6, 0, 3.6], crew = [];
+CREW_X.forEach(x => {
+  add('gcs', new THREE.BoxGeometry(2.2, 0.9, 0.7), x, 0.6, -0.75, gcs, 0, WHITE);
+  const scr = new THREE.Mesh(new THREE.PlaneGeometry(1.5, 0.75), screenMat); scr.position.set(x, 1.45, -0.95); scr.rotation.x = -0.15; gcs.add(scr);
+  add('gcs', new THREE.BoxGeometry(0.6, 0.45, 0.6), x, 0.35, 0.35, gcs, 0, WHITE);
+  const h = makeHuman(1.75, consolePose, () => crewMat);
+  h.updateMatrixWorld(true);
+  const hipsY = h.userData.B.Hips.getWorldPosition(V(0, 0, 0)).y - h.getWorldPosition(V(0, 0, 0)).y;
+  h.position.set(x, 0.62 - hipsY, 0.3); h.rotation.y = Math.PI; gcs.add(h); crew.push(h);
+});
+const linkLine = new THREE.Line(new THREE.BufferGeometry().setFromPoints([V(0, 0, 0), V(1, 1, 1)]), new THREE.LineDashedMaterial({ color: 0xff9a66, dashSize: 18, gapSize: 12, transparent: true, opacity: 0 }));
+linkLine.frustumCulled = false; scene.add(linkLine);
+/* where the crew tells it to look: a cone from the drone to a point on the map */
+const LOOK_AT = V(380, 0, 120);
+const coneMat = holoMat(new THREE.Color(0.22, 0.5, 1.0));
+const cone = new THREE.Mesh(new THREE.ConeGeometry(1, 1, 32, 1, true), coneMat); scene.add(cone);
+const lookRing = new THREE.Mesh(new THREE.RingGeometry(34, 42, 48), new THREE.MeshBasicMaterial({ color: 0xff7a3d, transparent: true, opacity: 0, side: THREE.DoubleSide, depthWrite: false }));
+lookRing.rotation.x = -Math.PI / 2; lookRing.position.copy(LOOK_AT).add(V(0, 2, 0)); scene.add(lookRing);
+
+/* ---------- callouts ---------- */
+const coLayer = $('#callouts'), svgNS = 'http://www.w3.org/2000/svg';
+const lead = document.createElementNS(svgNS, 'svg'); coLayer.appendChild(lead);
+function callout(name, sub, anchorFn, offset, t0, t1, cls) {
+  const el = document.createElement('div'); el.className = 'co' + (cls ? ' ' + cls : '');
+  el.innerHTML = `<i></i><span>${name}${sub ? `<small>${sub}</small>` : ''}</span>`;
+  coLayer.appendChild(el);
+  const line = document.createElementNS(svgNS, 'line'); lead.appendChild(line);
+  if (cls === 'white') line.style.stroke = '#fff'; if (cls === 'red') line.style.stroke = '#ff4d4d';
+  return { el, line, anchorFn, offset, t0, t1 };
+}
+const W2 = (obj, local) => obj.localToWorld(local.clone());
+const crewHead = i => crew[i].userData.B.Head.getWorldPosition(V(0, 0, 0));
+const CALL = [
+  callout('■ АВТО · ЗЛІТ', '', () => droneRoot.position, [0.06, -0.08], 0.5, 1.3),
+  callout('■ МАРШРУТ', 'точки задано заздалегідь', () => droneRoot.position, [0.06, -0.08], 1.35, 2.6),
+  callout('■ АВТО · ПОСАДКА', '', () => droneRoot.position, [0.06, -0.08], 2.7, 3.7),
+  callout('■ GPS ✕', 'сигналу немає', () => sats[1].g.position, [0.02, 0.06], 4.8, 8.6, 'red'),
+  callout('■ 3 БЛОКИ ЗЛИТТЯ ДАНИХ', 'власні датчики', () => W2(drone, FUSE_LOCAL[1]), [-0.06, -0.12], 5.6, 8.6),
+  callout('■ ПОЗИЦІЯ', 'без GPS', () => posRing.position, [0.07, 0.07], 6.8, 8.6),
+  callout('■ АВТОПІЛОТ × 3', '', () => W2(drone, AP_LOCAL[1]), [0.06, -0.12], 9.3, 12.6),
+  callout('■ ВІДМОВА', 'політ триває', () => W2(drone, AP_LOCAL[0]), [-0.06, 0.1], 11.1, 12.6, 'red'),
+  callout('■ ПІЛОТ', '', () => crewHead(0), [-0.05, -0.08], 13.5, 15.6, 'white'),
+  callout('■ ОПЕРАТОР ОПТИКИ', '', () => crewHead(1), [0.04, -0.13], 13.8, 15.6, 'white'),
+  callout('■ КОМАНДИР', '', () => crewHead(2), [0.05, -0.06], 14.1, 15.6, 'white'),
+  callout('■ ТОЧКА ОГЛЯДУ', 'куди дивитися — вирішують люди', () => LOOK_AT, [-0.04, 0.08], 16.3, 18.2),
+];
+const _v = V(0, 0, 0);
+function updateCallouts(t) {
+  cam.updateMatrixWorld(); scene.updateMatrixWorld();
+  CALL.forEach(c => {
+    const a = win(c.t0, c.t0 + 0.25, c.t1 - 0.25, c.t1, t);
+    c.el.style.opacity = a; c.line.style.opacity = a;
+    if (a <= 0) return;
+    _v.copy(c.anchorFn()).project(cam);
+    const ax = (_v.x + 1) / 2 * innerWidth, ay = (1 - _v.y) / 2 * innerHeight;
+    let x = ax + c.offset[0] * innerWidth, y = ay + c.offset[1] * innerHeight;
+    const left = c.offset[0] < 0;
+    c.el.classList.toggle('left', left);
+    const w = c.el.offsetWidth, pad = 12;
+    x = left ? Math.max(x, w - 6 + pad) : Math.min(x, innerWidth - w + 6 - pad);
+    c.el.style.left = x + 'px'; c.el.style.top = y + 'px';
+    c.line.setAttribute('x1', ax); c.line.setAttribute('y1', ay); c.line.setAttribute('x2', x); c.line.setAttribute('y2', y);
+  });
+}
+
+/* ---------- post ---------- */
+const FilmShader = {
+  uniforms: { tDiffuse: { value: null }, uTime: { value: 0 }, uGrain: { value: 0.045 }, uVig: { value: 0.45 } },
+  vertexShader: `varying vec2 vUv; void main(){ vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.0); }`,
+  fragmentShader: `uniform sampler2D tDiffuse; uniform float uTime, uGrain, uVig; varying vec2 vUv;
+    float h(vec2 p){ return fract(sin(dot(p, vec2(12.9898,78.233))) * 43758.5453); }
+    void main(){ vec4 c = texture2D(tDiffuse, vUv);
+      c.rgb += (h(gl_FragCoord.xy + fract(uTime * 13.0) * 517.0) - 0.5) * uGrain;
+      vec2 d = (vUv - 0.5) * vec2(0.8, 1.0);
+      c.rgb *= mix(1.0 - uVig, 1.0, smoothstep(0.66, 0.2, length(d)));
+      gl_FragColor = c; }`
+};
+const rt = renderer.capabilities.isWebGL2 && THREE.WebGLMultisampleRenderTarget
+  ? new THREE.WebGLMultisampleRenderTarget(innerWidth * renderer.getPixelRatio(), innerHeight * renderer.getPixelRatio(), { format: THREE.RGBAFormat }) : undefined;
+const composer = new THREE.EffectComposer(renderer, rt);
+composer.setPixelRatio(renderer.getPixelRatio()); composer.setSize(innerWidth, innerHeight);
+composer.addPass(new THREE.RenderPass(scene, cam));
+composer.addPass(new THREE.UnrealBloomPass(new THREE.Vector2(innerWidth, innerHeight), 0.32, 0.45, 0.35));
+const film = new THREE.ShaderPass(FilmShader); composer.addPass(film);
+
+/* ---------- per-frame ---------- */
+const STAMPS = [[0.45, 1.3, 'ЗЛІТАЄ <b>САМ</b>'], [1.35, 2.6, 'ТРИМАЄ <b>МАРШРУТ</b>'], [2.7, 3.7, 'СІДАЄ <b>САМ</b>']];
+function render(t) {
+  holoMats.forEach(m => { m.uniforms.uTime.value = t; });
+  prop.rotation.x = t * 30;
+
+  /* where the drone is */
+  let pose;
+  if (t < 3.8) pose = poseOn(takeoff, smooth(0.3, 3.7, t) * 0.999);
+  else pose = poseOn(cruise, ((t - 3.8) * 0.022) % 1);
+  placeDrone(pose.p, pose.tng, t < 3.8 ? pose.bank : pose.bank * 0.6);
+  const dp = droneRoot.position.clone();
+
+  /* route draws itself during the first beat */
+  route.material.opacity = 0.9 * win(0.4, 0.8, 3.6, 3.85, t);
+  routeGeo.setDrawRange(0, Math.floor(ROUTE_PTS.length * clamp01((t - 0.3) / 3.4)) + 1);
+  wpMat.opacity = 0.85 * win(0.9, 1.3, 3.6, 3.85, t);
+
+  /* GPS: links, then gone */
+  const satOn = win(3.9, 4.3, 8.6, 8.8, t), satDead = smooth(4.6, 5.0, t);
+  sats.forEach((s, i) => {
+    s.g.position.copy(dp).add(s.off); s.g.rotation.y = t * 0.3 + i;
+    const flick = t > 4.6 && t < 5.0 ? (Math.sin(t * 60 + i) > 0 ? 1 : 0.2) : 1;
+    s.line.geometry.setFromPoints([s.g.position, dp]); s.line.computeLineDistances();
+    s.line.material.opacity = satOn * 0.85 * flick * (1 - satDead);
+  });
+  setFade('sat', satOn * lerp(1, 0.35, satDead));
+  /* fusion units light one by one; their lines meet in the position ring */
+  [0, 1, 2].forEach(i => setHi('fuse' + i, win(5.4 + i * 0.35, 5.7 + i * 0.35, 8.5, 8.8, t)));
+  posRing.position.set(dp.x, 2, dp.z);
+  posRing.material.opacity = 0.9 * win(6.6, 7.0, 8.5, 8.8, t);
+  fusionLines.forEach((l, i) => {
+    l.geometry.setFromPoints([W2(drone, FUSE_LOCAL[i]), posRing.position]);
+    l.material.opacity = 0.8 * win(5.7 + i * 0.35, 6.0 + i * 0.35, 8.5, 8.8, t);
+  });
+
+  /* triple autopilot: all three, then one fails */
+  const apOn = win(9.0, 9.4, 12.6, 12.9, t);
+  setHi('ap0', apOn * (1 - smooth(10.9, 11.2, t)));
+  if (t > 10.9 && t < 12.9) setFade('ap0', 0.35 + 0.15 * Math.sin(t * 20)); else setFade('ap0', 1);
+  setHi('ap1', apOn * (0.75 + 0.25 * Math.sin(t * 6)));
+  setHi('ap2', apOn * (0.75 + 0.25 * Math.sin(t * 6 + 1.5)));
+
+  /* the crew and the look */
+  screenMat.opacity = 0.75 * smooth(12.9, 13.4, t);
+  setFade('gcs', smooth(12.7, 13.2, t)); setFade('crew', 0.55 * smooth(12.9, 13.5, t));
+  const mastW = W2(gcs, MAST_LOCAL);
+  const mid = mastW.clone().lerp(dp, 0.5).add(V(0, 260, 0));
+  linkLine.geometry.setFromPoints(new THREE.QuadraticBezierCurve3(mastW, mid, dp).getPoints(40)); linkLine.computeLineDistances();
+  linkLine.material.opacity = 0.9 * smooth(15.2, 15.7, t);
+  const lookU = smooth(15.9, 16.8, t), target = V(dp.x, 0, dp.z).lerp(LOOK_AT, lookU);
+  const coneLen = dp.distanceTo(target);
+  cone.position.copy(dp).lerp(target, 0.5);
+  cone.scale.set(coneLen * 0.12, coneLen, coneLen * 0.12);
+  cone.quaternion.setFromUnitVectors(V(0, 1, 0), dp.clone().sub(target).normalize());
+  coneMat.uniforms.uFade.value = 0.6 * smooth(15.6, 16.1, t);
+  cone.visible = t > 15.5;
+  lookRing.material.opacity = 0.9 * smooth(16.5, 16.9, t);
+
+  /* camera */
+  let pos, look;
+  if (t < 3.8) { pos = V(260, 1250, 1650); look = V(160, 0, 230); }
+  else if (t < 8.8) { const u = smooth(3.8, 8.8, t); pos = dp.clone().add(V(lerp(-360, -230, u), lerp(120, 90, u), lerp(470, 300, u))); look = dp.clone().add(V(0, lerp(150, 30, u), 0)); }
+  else if (t < 12.8) { const u = smooth(8.8, 12.8, t); pos = dp.clone().add(V(lerp(-70, -55, u), lerp(32, 26, u), lerp(85, 70, u))); look = dp.clone(); }
+  else { const u = smooth(15.0, 17.0, t);
+    const center = GCS.clone().add(dp).add(LOOK_AT).multiplyScalar(1 / 3);
+    const close = GCS.clone().add(V(6, 20, 44)), far = center.clone().add(V(260, 1150, 1500));
+    pos = close.lerp(far, u); look = GCS.clone().add(V(0, 5, 0)).lerp(center, u); }
+  cam.position.copy(pos); cam.lookAt(look);
+  cam.fov = fitFov(40); cam.aspect = innerWidth / innerHeight; cam.updateProjectionMatrix();
+
+  /* DOM */
+  $('#rubric').style.opacity = win(0.05, 0.3, 1.1, 1.4, t);
+  const st = STAMPS.find(([a, b]) => t >= a && t < b);
+  const stEl = $('#stamp');
+  if ((st ? st[2] : '') !== stEl.innerHTML) stEl.innerHTML = st ? st[2] : '';
+  stEl.style.opacity = st ? win(st[0], st[0] + 0.1, st[1] - 0.1, st[1], t) : 0;
+  $('#prog').style.width = (100 * t / DUR) + '%';
+  $('#fade').style.opacity = Math.max(1 - smooth(0, 0.3, t), ...[3.8, 8.8, 12.8].map(c => win(c - 0.18, c - 0.05, c + 0.05, c + 0.2, t)));
+  updateCallouts(t);
+  film.uniforms.uTime.value = t;
+  composer.render();
+}
+
+/* ---------- transport and capture contract ---------- */
+const scrub = $('#scrub'), timeEl = $('#time'), playBtn = $('#play');
+let t = 0, playing = !window.matchMedia('(prefers-reduced-motion: reduce)').matches, last = performance.now(), scrubbing = false;
+function setPlaying(p) { playing = p; $('#icoPause').hidden = !p; $('#icoPlay').hidden = p; playBtn.setAttribute('aria-label', p ? 'Пауза' : 'Відтворити'); }
+setPlaying(playing); if (!playing) t = 6.5;
+playBtn.addEventListener('click', () => setPlaying(!playing));
+scrub.addEventListener('input', () => { scrubbing = true; t = parseFloat(scrub.value); });
+scrub.addEventListener('change', () => { scrubbing = false; });
+function loop(now) {
+  const dt = Math.min(0.05, (now - last) / 1000); last = now;
+  if (playing && !scrubbing) { t += dt; if (t >= DUR) t -= DUR; }
+  render(t);
+  if (!scrubbing) scrub.value = t.toFixed(2);
+  timeEl.textContent = t.toFixed(1).padStart(4, '0') + ' / ' + DUR.toFixed(1);
+  requestAnimationFrame(loop);
+}
+window.addEventListener('resize', () => { renderer.setSize(innerWidth, innerHeight); composer.setSize(innerWidth, innerHeight); });
+window.DURATION = DUR; window.FPS = 30;
+window.seek = s => { t = s; render(s); };
+if (new URLSearchParams(location.search).has('render')) { $('#controls').hidden = true; render(0); }
+else requestAnimationFrame(loop);
+})();
+</script>
